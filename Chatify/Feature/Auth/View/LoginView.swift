@@ -18,19 +18,17 @@ struct LoginView: View {
     @State private var email: String = ""
     @State private var password: String = ""
     @State private var isLoading: Bool = false
-    @State private var statusMessage = ""
+    @State private var alertMessage = ""
+    @State private var showErrorAlert = false
+    
     @State private var showPassword = false
     @State private var logoAppeared = false
-    
-    @State private var showErrorAlert = false
-    @State private var showSuccessAlert = false
-    @State private var alertMessage = ""
     
     @State private var showForgotPassword = false
     @State private var showSignUp = false
     
     var body: some View {
-        NavigationView{
+        NavigationStack{
             ZStack{
                 ZStack{
                     Image("Background")
@@ -49,11 +47,11 @@ struct LoginView: View {
                             Image("AppLogo")
                                 .resizable()
                                 .aspectRatio(contentMode: .fit)
-                                .frame(width: 40, height: 40)
+                                .frame(width: 60, height: 60)
                                 .background(
                                     Circle()
                                         .fill(Color.white)
-                                        .frame(width: 60, height: 60)
+                                        .frame(width: 80, height: 80)
                                         .shadow(
                                             color: .gray.opacity(0.3),
                                             radius: 4, x: 0, y: 2
@@ -72,8 +70,9 @@ struct LoginView: View {
                         }
                         .padding(.top, 40)
                         
-                        VStack (spacing: 25) {
-                            VStack (alignment: .leading, spacing: 8) {
+                        VStack (spacing: 20) {
+                            Spacer()
+                            VStack (alignment: .leading, spacing: 1) {
                                 Text("Sign In")
                                     .font(.largeTitle)
                                     .fontWeight(.bold)
@@ -85,42 +84,38 @@ struct LoginView: View {
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
                             
-                            VStack (alignment: .leading, spacing: 8) {
-                                TextField("Email", text: $email)
-                                    .keyboardType(.emailAddress)
-                                    .autocapitalization(.none)
-                                    .padding(12)
-                                    .background(Color.white)
-                                    .cornerRadius(8)
-                                    .overlay(RoundedRectangle(cornerRadius: 8)
-                                        .stroke(Color.gray, lineWidth: 1))
-                            }
-                            
-                            VStack (alignment: .leading, spacing: 8) {
-                                HStack{
-                                    Group{
-                                        if showPassword {
-                                            TextField("Password", text: $password)
-                                        } else {
-                                            SecureField(
-                                                "Password",
-                                                text: $password
-                                            )
-                                        }
-                                    }
-                                    
-                                    Button(action: { showPassword.toggle()}) {
-                                        Image(systemName: showPassword ? "eye.slash" : "eye")
-                                            .foregroundColor(.secondary)
-                                    }
-                                }
-                                .padding(12)
+                            TextField("Email", text: $email)
+                                .keyboardType(.emailAddress)
+                                .textInputAutocapitalization(.none)
+                                .padding()
                                 .background(Color.white)
                                 .cornerRadius(8)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .stroke(Color.gray, lineWidth: 1))
+                                .overlay(RoundedRectangle(cornerRadius: 8)
+                                    .stroke(Color.gray, lineWidth: 1))
+                            
+                            HStack{
+                                Group{
+                                    if showPassword {
+                                        TextField("Password", text: $password)
+                                    } else {
+                                        SecureField(
+                                            "Password",
+                                            text: $password
+                                        )
+                                    }
+                                }
+                                
+                                Button(action: { showPassword.toggle()}) {
+                                    Image(systemName: showPassword ? "eye.slash" : "eye")
+                                        .foregroundColor(.secondary)
+                                }
                             }
+                            .padding()
+                            .background(Color.white)
+                            .cornerRadius(8)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(Color.gray, lineWidth: 1))
                             
                             HStack{
                                 Spacer()
@@ -190,34 +185,57 @@ struct LoginView: View {
                             Spacer()
                         }
                         .padding(.horizontal, 20)
+                        .background(Color.white)
+                        .cornerRadius(20)
+                        .padding(20)
                     }
                 }
             }
-            .navigationBarHidden(true)
+//            .navigationBarHidden(true)
+            .toolbar(.hidden, for: .navigationBar)
+            .onAppear { logoAppeared = true }
             
-            NavigationLink(
-                destination: ForgotPasswordView(),
-                isActive: $showForgotPassword
+            .navigationDestination(
+                isPresented: $showForgotPassword
             ) {
-                EmptyView()
+                ForgotPasswordView()
             }
             
-            NavigationLink(destination: SignupView(), isActive: $showSignUp) {
-                EmptyView()
+            .navigationDestination(
+                isPresented: $showSignUp
+            ) {
+                SignupView()
+            }
+            
+            .alert("Login Error", isPresented: $showErrorAlert) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(alertMessage)
             }
         }
-        .navigationViewStyle(StackNavigationViewStyle())
-        .onAppear{
-            logoAppeared = true
-        }
-        
-        
     }
     
     private func handleLogin(){
+        guard !email.isEmpty, !password.isEmpty else {
+            alertMessage = "Please fill in all fields"
+            showErrorAlert = true
+            return
+        }
         
+        isLoading = true
+        
+        Auth.auth().signIn(withEmail: email, password: password) { result, error in
+            DispatchQueue.main.async {
+                isLoading = false
+                if let error = error {
+                    alertMessage = error.localizedDescription
+                    showErrorAlert = true
+                } else {
+                    alreadyLoggedIn()
+                }
+            }
+        }
     }
-    
 }
 
 #Preview {
