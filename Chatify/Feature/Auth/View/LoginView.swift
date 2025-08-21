@@ -22,11 +22,25 @@ struct LoginView: View {
     @State private var showPassword = false
     @State private var logoAppeared = false
     
+    @State private var showErrorAlert = false
+    @State private var showSuccessAlert = false
+    @State private var alertMessage = ""
+    
+    @State private var showForgotPassword = false
+    @State private var showSignUp = false
+    
     var body: some View {
         NavigationView{
             ZStack{
-                Color(.systemGray6)
-                    .ignoresSafeArea()
+                ZStack{
+                    Image("Background")
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .ignoresSafeArea()
+                    
+                    Color.black.opacity(0.8)
+                        .ignoresSafeArea()
+                }
                 
                 ScrollView {
                     VStack(spacing: 30){
@@ -54,18 +68,150 @@ struct LoginView: View {
                             Text("Chatify")
                                 .font(.title)
                                 .fontWeight(.semibold)
-                                .foregroundColor(.primary)
+                                .foregroundColor(.white)
                         }
                         .padding(.top, 40)
+                        
+                        VStack (spacing: 25) {
+                            VStack (alignment: .leading, spacing: 8) {
+                                Text("Sign In")
+                                    .font(.largeTitle)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.primary)
+                                
+                                Text("Please sign in to continue")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            
+                            VStack (alignment: .leading, spacing: 8) {
+                                TextField("Email", text: $email)
+                                    .keyboardType(.emailAddress)
+                                    .autocapitalization(.none)
+                                    .padding(12)
+                                    .background(Color.white)
+                                    .cornerRadius(8)
+                                    .overlay(RoundedRectangle(cornerRadius: 8)
+                                        .stroke(Color.gray, lineWidth: 1))
+                            }
+                            
+                            VStack (alignment: .leading, spacing: 8) {
+                                HStack{
+                                    Group{
+                                        if showPassword {
+                                            TextField("Password", text: $password)
+                                        } else {
+                                            SecureField(
+                                                "Password",
+                                                text: $password
+                                            )
+                                        }
+                                    }
+                                    
+                                    Button(action: { showPassword.toggle()}) {
+                                        Image(systemName: showPassword ? "eye.slash" : "eye")
+                                            .foregroundColor(.secondary)
+                                    }
+                                }
+                                .padding(12)
+                                .background(Color.white)
+                                .cornerRadius(8)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .stroke(Color.gray, lineWidth: 1))
+                            }
+                            
+                            HStack{
+                                Spacer()
+                                
+                                Button("Forgot Password?") {
+                                    showForgotPassword = true
+                                }
+                                .font(.subheadline)
+                                .foregroundColor(.blue)
+                            }
+                            
+//                            Spacer()
+                            
+                            Button {
+                                handleLogin()
+                            } label: {
+                                HStack{
+                                    Spacer()
+                                    
+                                    if isLoading {
+                                        ProgressView()
+                                            .scaleEffect(0.8)
+                                            .foregroundColor(.white)
+                                        
+                                        Text("Signing In...")
+                                            .foregroundColor(.white)
+                                            .padding(.vertical, 10)
+                                            .font(
+                                                .system(
+                                                    size: 14,
+                                                    weight: .semibold
+                                                )
+                                            )
+                                    } else {
+                                        Text("Login")
+                                            .foregroundColor(.white)
+                                            .padding(.vertical, 10)
+                                            .font(
+                                                .system(
+                                                    size: 14,
+                                                    weight: .semibold
+                                                )
+                                            )
+                                    }
+                                    
+                                    Spacer()
+                                }
+                                .background(Color.blue)
+                                .cornerRadius(10)
+                            }
+                            .disabled(
+                                email.isEmpty || password.isEmpty || isLoading
+                            )
+                            .opacity(email.isEmpty || password.isEmpty || isLoading ? 0.6 : 1.0)
+                            
+                            HStack{
+                                Text("Don't have an account?")
+                                    .foregroundColor(.secondary)
+                                
+                                Button("Sign Up"){
+                                    showSignUp = true
+                                }
+                                .foregroundColor(.blue)
+                            }
+                            .font(.subheadline)
+                            
+                            Spacer()
+                        }
+                        .padding(.horizontal, 20)
                     }
                 }
             }
             .navigationBarHidden(true)
+            
+            NavigationLink(
+                destination: ForgotPasswordView(),
+                isActive: $showForgotPassword
+            ) {
+                EmptyView()
+            }
+            
+            NavigationLink(destination: SignupView(), isActive: $showSignUp) {
+                EmptyView()
+            }
         }
         .navigationViewStyle(StackNavigationViewStyle())
         .onAppear{
             logoAppeared = true
         }
+        
+        
     }
     
     private func handleLogin(){
