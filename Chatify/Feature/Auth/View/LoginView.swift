@@ -30,7 +30,7 @@ struct LoginView: View {
     @State private var showSignUp = false
     
     var body: some View {
-        NavigationView{
+        NavigationStack{
             ZStack{
                 ZStack{
                     Image("Background")
@@ -73,7 +73,8 @@ struct LoginView: View {
                         .padding(.top, 40)
                         
                         VStack (spacing: 25) {
-                            VStack (alignment: .leading, spacing: 8) {
+                            Spacer()
+                            VStack (alignment: .leading, spacing: 1) {
                                 Text("Sign In")
                                     .font(.largeTitle)
                                     .fontWeight(.bold)
@@ -88,7 +89,7 @@ struct LoginView: View {
                             VStack (alignment: .leading, spacing: 8) {
                                 TextField("Email", text: $email)
                                     .keyboardType(.emailAddress)
-                                    .autocapitalization(.none)
+                                    .textInputAutocapitalization(.none)
                                     .padding(12)
                                     .background(Color.white)
                                     .cornerRadius(8)
@@ -96,31 +97,29 @@ struct LoginView: View {
                                         .stroke(Color.gray, lineWidth: 1))
                             }
                             
-                            VStack (alignment: .leading, spacing: 8) {
-                                HStack{
-                                    Group{
-                                        if showPassword {
-                                            TextField("Password", text: $password)
-                                        } else {
-                                            SecureField(
-                                                "Password",
-                                                text: $password
-                                            )
-                                        }
-                                    }
-                                    
-                                    Button(action: { showPassword.toggle()}) {
-                                        Image(systemName: showPassword ? "eye.slash" : "eye")
-                                            .foregroundColor(.secondary)
+                            HStack{
+                                Group{
+                                    if showPassword {
+                                        TextField("Password", text: $password)
+                                    } else {
+                                        SecureField(
+                                            "Password",
+                                            text: $password
+                                        )
                                     }
                                 }
-                                .padding(12)
-                                .background(Color.white)
-                                .cornerRadius(8)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .stroke(Color.gray, lineWidth: 1))
+                                
+                                Button(action: { showPassword.toggle()}) {
+                                    Image(systemName: showPassword ? "eye.slash" : "eye")
+                                        .foregroundColor(.secondary)
+                                }
                             }
+                            .padding(12)
+                            .background(Color.white)
+                            .cornerRadius(8)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(Color.gray, lineWidth: 1))
                             
                             HStack{
                                 Spacer()
@@ -190,34 +189,73 @@ struct LoginView: View {
                             Spacer()
                         }
                         .padding(.horizontal, 20)
+                        .background(Color.white)
+                        .cornerRadius(20)
+                        .padding(20)
                     }
                 }
             }
-            .navigationBarHidden(true)
+//            .navigationBarHidden(true)
+            .toolbar(.hidden, for: .navigationBar)
+            .onAppear { logoAppeared = true }
             
-            NavigationLink(
-                destination: ForgotPasswordView(),
-                isActive: $showForgotPassword
+            .navigationDestination(
+                isPresented: $showForgotPassword
             ) {
-                EmptyView()
+                ForgotPasswordView()
             }
             
-            NavigationLink(destination: SignupView(), isActive: $showSignUp) {
-                EmptyView()
+            .navigationDestination(
+                isPresented: $showSignUp
+            ) {
+                SignupView()
+            }
+            
+            .alert("Login Error", isPresented: $showErrorAlert) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(alertMessage)
+            }
+            
+            .alert("Success", isPresented: $showSuccessAlert) {
+                Button("Continue") {
+                    alreadyLoggedIn()
+                }
+            } message: {
+                Text(alertMessage)
             }
         }
-        .navigationViewStyle(StackNavigationViewStyle())
-        .onAppear{
-            logoAppeared = true
-        }
-        
-        
     }
     
     private func handleLogin(){
+        guard !email.isEmpty, !password.isEmpty else {
+            alertMessage = "Please fill in all fields"
+            showErrorAlert = true
+            return
+        }
         
+        guard email.contains("@") && email.contains(".") else {
+            alertMessage = "Please enter a valid email address"
+            showErrorAlert = true
+            return
+        }
+        
+        isLoading = true
+        
+        Auth.auth().signIn(withEmail: email, password: password) { result, error in
+            DispatchQueue.main.async {
+                self.isLoading = false
+                
+                if let error = error {
+                    self.alertMessage = error.localizedDescription
+                    self.showErrorAlert = true
+                } else {
+                    self.alertMessage = "Login successful!"
+//                    self.showSuccessAlert = true
+                }
+            }
+        }
     }
-    
 }
 
 #Preview {
