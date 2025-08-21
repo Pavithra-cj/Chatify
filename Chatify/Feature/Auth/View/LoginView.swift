@@ -18,13 +18,11 @@ struct LoginView: View {
     @State private var email: String = ""
     @State private var password: String = ""
     @State private var isLoading: Bool = false
-    @State private var statusMessage = ""
+    @State private var alertMessage = ""
+    @State private var showErrorAlert = false
+    
     @State private var showPassword = false
     @State private var logoAppeared = false
-    
-    @State private var showErrorAlert = false
-    @State private var showSuccessAlert = false
-    @State private var alertMessage = ""
     
     @State private var showForgotPassword = false
     @State private var showSignUp = false
@@ -49,11 +47,11 @@ struct LoginView: View {
                             Image("AppLogo")
                                 .resizable()
                                 .aspectRatio(contentMode: .fit)
-                                .frame(width: 40, height: 40)
+                                .frame(width: 60, height: 60)
                                 .background(
                                     Circle()
                                         .fill(Color.white)
-                                        .frame(width: 60, height: 60)
+                                        .frame(width: 80, height: 80)
                                         .shadow(
                                             color: .gray.opacity(0.3),
                                             radius: 4, x: 0, y: 2
@@ -72,7 +70,7 @@ struct LoginView: View {
                         }
                         .padding(.top, 40)
                         
-                        VStack (spacing: 25) {
+                        VStack (spacing: 20) {
                             Spacer()
                             VStack (alignment: .leading, spacing: 1) {
                                 Text("Sign In")
@@ -86,16 +84,14 @@ struct LoginView: View {
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
                             
-                            VStack (alignment: .leading, spacing: 8) {
-                                TextField("Email", text: $email)
-                                    .keyboardType(.emailAddress)
-                                    .textInputAutocapitalization(.none)
-                                    .padding(12)
-                                    .background(Color.white)
-                                    .cornerRadius(8)
-                                    .overlay(RoundedRectangle(cornerRadius: 8)
-                                        .stroke(Color.gray, lineWidth: 1))
-                            }
+                            TextField("Email", text: $email)
+                                .keyboardType(.emailAddress)
+                                .textInputAutocapitalization(.none)
+                                .padding()
+                                .background(Color.white)
+                                .cornerRadius(8)
+                                .overlay(RoundedRectangle(cornerRadius: 8)
+                                    .stroke(Color.gray, lineWidth: 1))
                             
                             HStack{
                                 Group{
@@ -114,7 +110,7 @@ struct LoginView: View {
                                         .foregroundColor(.secondary)
                                 }
                             }
-                            .padding(12)
+                            .padding()
                             .background(Color.white)
                             .cornerRadius(8)
                             .overlay(
@@ -216,14 +212,6 @@ struct LoginView: View {
             } message: {
                 Text(alertMessage)
             }
-            
-            .alert("Success", isPresented: $showSuccessAlert) {
-                Button("Continue") {
-                    alreadyLoggedIn()
-                }
-            } message: {
-                Text(alertMessage)
-            }
         }
     }
     
@@ -234,24 +222,16 @@ struct LoginView: View {
             return
         }
         
-        guard email.contains("@") && email.contains(".") else {
-            alertMessage = "Please enter a valid email address"
-            showErrorAlert = true
-            return
-        }
-        
         isLoading = true
         
         Auth.auth().signIn(withEmail: email, password: password) { result, error in
             DispatchQueue.main.async {
-                self.isLoading = false
-                
+                isLoading = false
                 if let error = error {
-                    self.alertMessage = error.localizedDescription
-                    self.showErrorAlert = true
+                    alertMessage = error.localizedDescription
+                    showErrorAlert = true
                 } else {
-                    self.alertMessage = "Login successful!"
-//                    self.showSuccessAlert = true
+                    alreadyLoggedIn()
                 }
             }
         }
