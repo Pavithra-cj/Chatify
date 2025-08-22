@@ -106,7 +106,7 @@ struct LoginView: View {
                                 }
                                 
                                 Button(action: { showPassword.toggle()}) {
-                                    Image(systemName: showPassword ? "eye.slash" : "eye")
+                                    Image(systemName: showPassword ? "eye" : "eye.slash")
                                         .foregroundColor(.secondary)
                                 }
                             }
