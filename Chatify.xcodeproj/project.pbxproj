@@ -11,7 +11,6 @@
 		8113B3D12E56469B008231DE /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 8113B3D02E56469B008231DE /* FirebaseFirestore */; };
 		8113B3D32E56469B008231DE /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = 8113B3D22E56469B008231DE /* FirebaseMessaging */; };
 		8113B3D52E56469B008231DE /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 8113B3D42E56469B008231DE /* FirebaseStorage */; };
-		8113B3D72E564792008231DE /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 8113B3D62E564792008231DE /* GoogleService-Info.plist */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -35,7 +34,6 @@
 		8113B3952E560C9C008231DE /* Chatify.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Chatify.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		8113B3A72E560C9E008231DE /* ChatifyTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ChatifyTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		8113B3B12E560C9E008231DE /* ChatifyUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ChatifyUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		8113B3D62E564792008231DE /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -88,7 +86,6 @@
 		8113B38C2E560C9C008231DE = {
 			isa = PBXGroup;
 			children = (
-				8113B3D62E564792008231DE /* GoogleService-Info.plist */,
 				8113B3972E560C9C008231DE /* Chatify */,
 				8113B3AA2E560C9E008231DE /* ChatifyTests */,
 				8113B3B42E560C9E008231DE /* ChatifyUITests */,
@@ -233,7 +230,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				8113B3D72E564792008231DE /* GoogleService-Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
