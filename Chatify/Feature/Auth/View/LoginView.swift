@@ -86,7 +86,7 @@ struct LoginView: View {
                             
                             TextField("Email", text: $email)
                                 .keyboardType(.emailAddress)
-                                .textInputAutocapitalization(.none)
+                                .textInputAutocapitalization(.never)
                                 .padding()
                                 .background(Color.white)
                                 .cornerRadius(8)
@@ -204,7 +204,11 @@ struct LoginView: View {
             .navigationDestination(
                 isPresented: $showSignUp
             ) {
-                SignupView()
+                SignupView(
+                    alreadyLoggedIn: {
+                        
+                    }
+                )
             }
             
             .alert("Login Error", isPresented: $showErrorAlert) {
