@@ -15,6 +15,8 @@ struct SignupView: View {
     
     @Environment(\.dismiss) private var dismiss
     
+    let alreadyLoggedIn: () -> ()
+    
     @State private var email: String = ""
     @State private var password: String = ""
     @State private var confirmPassword: String = ""
@@ -35,7 +37,6 @@ struct SignupView: View {
     var body: some View {
         NavigationStack{
             ZStack{
-                // Background matching LoginView
                 ZStack{
                     Image("Background")
                         .resizable()
@@ -113,7 +114,7 @@ struct SignupView: View {
                             // Form Fields
                             VStack(spacing: 15) {
                                 TextField("Username", text: $username)
-                                    .textInputAutocapitalization(.none)
+                                    .textInputAutocapitalization(.never)
                                     .padding()
                                     .background(Color.white)
                                     .cornerRadius(8)
@@ -129,8 +130,8 @@ struct SignupView: View {
                                         .stroke(Color.gray, lineWidth: 1))
                                 
                                 TextField("Email", text: $email)
+                                    .textInputAutocapitalization(.never)
                                     .keyboardType(.emailAddress)
-                                    .textInputAutocapitalization(.none)
                                     .padding()
                                     .background(Color.white)
                                     .cornerRadius(8)
@@ -184,7 +185,7 @@ struct SignupView: View {
                             
                             // Sign Up Button
                             Button {
-                                handleSignIn()
+                                handleSignUp()
                             } label: {
                                 HStack{
                                     Spacer()
@@ -275,12 +276,64 @@ struct SignupView: View {
         }
     }
     
-    private func handleSignIn() {
+    private func resizeImage(_ image: UIImage, targetSize: CGSize) -> UIImage {
+        let renderer = UIGraphicsImageRenderer(size: targetSize)
+        return renderer.image{ _ in
+            image.draw(in: CGRect(origin: .zero, size: targetSize))
+        }
+    }
+    
+    private func handleSignUp() {
+        guard let originalImage = image else {
+            alertMessage = "Please select an profile image!"
+            return
+        }
+        let resizedImage = resizeImage(
+            originalImage,
+            targetSize: CGSize(width: 150, height: 150)
+        )
+        guard let imageData = resizedImage.jpegData(compressionQuality: 0.2) else {
+            alertMessage = "Failed to process image"
+            return
+        }
         
+        let base64Image = imageData.base64EncodedString()
+        
+        Auth.auth().createUser(withEmail: email, password: password) { result, error in
+            if let error = error {
+                print("Failed to create user: \(error.localizedDescription)")
+                self.alertMessage = "Failed to create user: \(error.localizedDescription)"
+                return
+            }
+            
+            guard let uid = result?.user.uid else { return }
+            
+            let userData: [String: Any] = [
+                "uid": uid,
+                "name": self.name,
+                "username": self.username,
+                "email": self.email,
+                "profileImage": base64Image
+            ]
+            
+            Firestore.firestore().collection("user").document(uid).setData(userData) {
+                err in if let err = err {
+                    alertMessage = "Failed to save user data: \(err.localizedDescription)"
+                    return
+                }
+            }
+            
+            print("User created successfully!: \(result!.user.uid)")
+            self.alertMessage = "User created successfully!: \(result!.user.uid)"
+            
+            self.alreadyLoggedIn()
+        }
     }
     
 }
 
 #Preview {
-    SignupView()
+    SignupView(alreadyLoggedIn: {
+        
+    })
 }
