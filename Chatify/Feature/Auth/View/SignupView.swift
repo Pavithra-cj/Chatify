@@ -15,24 +15,11 @@ struct SignupView: View {
     
     @Environment(\.dismiss) private var dismiss
     
-    let alreadyLoggedIn: () -> ()
+    @StateObject private var viewModel: SignupViewModel
     
-    @State private var email: String = ""
-    @State private var password: String = ""
-    @State private var confirmPassword: String = ""
-    @State private var name: String = ""
-    @State private var username: String = ""
-    @State private var isLoading: Bool = false
-    @State private var alertMessage = ""
-    @State private var showErrorAlert = false
-    @State private var showSuccessAlert = false
-    
-    @State private var shouldShowImagePicker: Bool = false
-    @State private var image: UIImage?
-    
-    @State private var showPassword = false
-    @State private var showConfirmPassword = false
-    @State private var logoAppeared = false
+    init(alreadyLoggedIn: @escaping () -> ()) {
+        _viewModel = StateObject(wrappedValue: SignupViewModel(alreadyLoggedIn: alreadyLoggedIn))
+    }
     
     var body: some View {
         NavigationStack{
@@ -76,7 +63,7 @@ struct SignupView: View {
                             
                             // Profile Image Picker
                             Button{
-                                shouldShowImagePicker.toggle()
+                                viewModel.shouldShowImagePicker.toggle()
                             } label: {
                                 VStack{
                                     if let image = self.image {
@@ -113,7 +100,7 @@ struct SignupView: View {
                             
                             // Form Fields
                             VStack(spacing: 15) {
-                                TextField("Username", text: $username)
+                                TextField("Username", text: $viewModel.username)
                                     .textInputAutocapitalization(.never)
                                     .padding()
                                     .background(Color.white)
@@ -121,7 +108,7 @@ struct SignupView: View {
                                     .overlay(RoundedRectangle(cornerRadius: 8)
                                         .stroke(Color.gray, lineWidth: 1))
                                 
-                                TextField("Full Name", text: $name)
+                                TextField("Full Name", text: $viewModel.name)
                                     .textInputAutocapitalization(.words)
                                     .padding()
                                     .background(Color.white)
@@ -129,7 +116,7 @@ struct SignupView: View {
                                     .overlay(RoundedRectangle(cornerRadius: 8)
                                         .stroke(Color.gray, lineWidth: 1))
                                 
-                                TextField("Email", text: $email)
+                                TextField("Email", text: $viewModel.email)
                                     .textInputAutocapitalization(.never)
                                     .keyboardType(.emailAddress)
                                     .padding()
@@ -141,15 +128,15 @@ struct SignupView: View {
                                 // Password field with show/hide toggle
                                 HStack{
                                     Group{
-                                        if showPassword {
-                                            TextField("Password", text: $password)
+                                        if viewModel.showPassword {
+                                            TextField("Password", text: $viewModel.password)
                                         } else {
-                                            SecureField("Password", text: $password)
+                                            SecureField("Password", text: $viewModel.password)
                                         }
                                     }
                                     
-                                    Button(action: { showPassword.toggle()}) {
-                                        Image(systemName: showPassword ? "eye" : "eye.slash")
+                                    Button(action: { viewModel.showPassword.toggle()}) {
+                                        Image(systemName: viewModel.showPassword ? "eye" : "eye.slash")
                                             .foregroundColor(.secondary)
                                     }
                                 }
@@ -163,15 +150,15 @@ struct SignupView: View {
                                 // Confirm Password field with show/hide toggle
                                 HStack{
                                     Group{
-                                        if showConfirmPassword {
-                                            TextField("Confirm Password", text: $confirmPassword)
+                                        if viewModel.showConfirmPassword {
+                                            TextField("Confirm Password", text: $viewModel.confirmPassword)
                                         } else {
-                                            SecureField("Confirm Password", text: $confirmPassword)
+                                            SecureField("Confirm Password", text: $viewModel.confirmPassword)
                                         }
                                     }
                                     
-                                    Button(action: { showConfirmPassword.toggle()}) {
-                                        Image(systemName: showConfirmPassword ? "eye" : "eye.slash")
+                                    Button(action: { viewModel.showConfirmPassword.toggle()}) {
+                                        Image(systemName: viewModel.showConfirmPassword ? "eye" : "eye.slash")
                                             .foregroundColor(.secondary)
                                     }
                                 }
@@ -185,12 +172,12 @@ struct SignupView: View {
                             
                             // Sign Up Button
                             Button {
-                                handleSignUp()
+                                viewModel.handleSignUp()
                             } label: {
                                 HStack{
                                     Spacer()
                                     
-                                    if isLoading {
+                                    if viewModel.isLoading {
                                         ProgressView()
                                             .scaleEffect(0.8)
                                             .foregroundColor(.white)
@@ -222,14 +209,14 @@ struct SignupView: View {
                                 .cornerRadius(10)
                             }
                             .disabled(
-                                email.isEmpty || password.isEmpty ||
-                                confirmPassword.isEmpty || name.isEmpty ||
-                                username.isEmpty || isLoading
+                                viewModel.email.isEmpty || viewModel.password.isEmpty ||
+                                viewModel.confirmPassword.isEmpty || viewModel.name.isEmpty ||
+                                viewModel.username.isEmpty || viewModel.isLoading
                             )
                             .opacity(
-                                email.isEmpty || password.isEmpty ||
-                                confirmPassword.isEmpty || name.isEmpty ||
-                                username.isEmpty || isLoading ? 0.6 : 1.0
+                                viewModel.email.isEmpty || viewModel.password.isEmpty ||
+                                viewModel.confirmPassword.isEmpty || viewModel.name.isEmpty ||
+                                viewModel.username.isEmpty || viewModel.isLoading ? 0.6 : 1.0
                             )
                             
                             // Back to Login
@@ -254,79 +241,25 @@ struct SignupView: View {
                 }
             }
             .toolbar(.hidden, for: .navigationBar)
-            .onAppear { logoAppeared = true }
+            .onAppear { viewModel.logoAppeared = true }
             
-            .fullScreenCover(isPresented: $shouldShowImagePicker, onDismiss: nil) {
-                ImagePicker(image: $image)
+            .fullScreenCover(isPresented: $viewModel.shouldShowImagePicker, onDismiss: nil) {
+                ImagePicker(image: $viewModel.image)
             }
             
-            .alert("Sign Up Error", isPresented: $showErrorAlert) {
+            .alert("Sign Up Error", isPresented: $viewModel.showErrorAlert) {
                 Button("OK", role: .cancel) {}
             } message: {
-                Text(alertMessage)
+                Text(viewModel.alertMessage)
             }
             
-            .alert("Account Created!", isPresented: $showSuccessAlert) {
+            .alert("Account Created!", isPresented: $viewModel.showSuccessAlert) {
                 Button("OK", role: .cancel) {
                     dismiss()
                 }
             } message: {
                 Text("Your account has been created successfully. Please sign in to continue.")
             }
-        }
-    }
-    
-    private func resizeImage(_ image: UIImage, targetSize: CGSize) -> UIImage {
-        let renderer = UIGraphicsImageRenderer(size: targetSize)
-        return renderer.image{ _ in
-            image.draw(in: CGRect(origin: .zero, size: targetSize))
-        }
-    }
-    
-    private func handleSignUp() {
-        guard let originalImage = image else {
-            alertMessage = "Please select an profile image!"
-            return
-        }
-        let resizedImage = resizeImage(
-            originalImage,
-            targetSize: CGSize(width: 150, height: 150)
-        )
-        guard let imageData = resizedImage.jpegData(compressionQuality: 0.2) else {
-            alertMessage = "Failed to process image"
-            return
-        }
-        
-        let base64Image = imageData.base64EncodedString()
-        
-        Auth.auth().createUser(withEmail: email, password: password) { result, error in
-            if let error = error {
-                print("Failed to create user: \(error.localizedDescription)")
-                self.alertMessage = "Failed to create user: \(error.localizedDescription)"
-                return
-            }
-            
-            guard let uid = result?.user.uid else { return }
-            
-            let userData: [String: Any] = [
-                "uid": uid,
-                "name": self.name,
-                "username": self.username,
-                "email": self.email,
-                "profileImage": base64Image
-            ]
-            
-            Firestore.firestore().collection("user").document(uid).setData(userData) {
-                err in if let err = err {
-                    alertMessage = "Failed to save user data: \(err.localizedDescription)"
-                    return
-                }
-            }
-            
-            print("User created successfully!: \(result!.user.uid)")
-            self.alertMessage = "User created successfully!: \(result!.user.uid)"
-            
-            self.alreadyLoggedIn()
         }
     }
     

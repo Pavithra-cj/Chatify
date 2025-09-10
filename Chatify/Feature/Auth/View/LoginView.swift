@@ -13,19 +13,11 @@ import FirebaseFirestore
 
 struct LoginView: View {
     
-    let alreadyLoggedIn: () -> ()
+    @StateObject private var viewModel: LoginViewModel
     
-    @State private var email: String = ""
-    @State private var password: String = ""
-    @State private var isLoading: Bool = false
-    @State private var alertMessage = ""
-    @State private var showErrorAlert = false
-    
-    @State private var showPassword = false
-    @State private var logoAppeared = false
-    
-    @State private var showForgotPassword = false
-    @State private var showSignUp = false
+    init(alreadyLoggedIn: @escaping () -> ()) {
+        _viewModel = StateObject(wrappedValue: LoginViewModel(alreadyLoggedIn: alreadyLoggedIn))
+    }
     
     var body: some View {
         NavigationStack{
@@ -57,10 +49,10 @@ struct LoginView: View {
                                             radius: 4, x: 0, y: 2
                                         )
                                 )
-                                .scaleEffect(logoAppeared ? 1.0 : 0.6)
+                                .scaleEffect(viewModel.logoAppeared ? 1.0 : 0.6)
                                 .animation(
                                     .easeOut(duration: 0.5),
-                                    value: logoAppeared
+                                    value: viewModel.logoAppeared
                                 )
                             
                             Text("Chatify")
@@ -84,7 +76,7 @@ struct LoginView: View {
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
                             
-                            TextField("Email", text: $email)
+                            TextField("Email", text: $viewModel.email)
                                 .keyboardType(.emailAddress)
                                 .textInputAutocapitalization(.never)
                                 .padding()
@@ -95,18 +87,18 @@ struct LoginView: View {
                             
                             HStack{
                                 Group{
-                                    if showPassword {
-                                        TextField("Password", text: $password)
+                                    if viewModel.showPassword {
+                                        TextField("Password", text: $viewModel.password)
                                     } else {
                                         SecureField(
                                             "Password",
-                                            text: $password
+                                            text: $viewModel.password
                                         )
                                     }
                                 }
                                 
-                                Button(action: { showPassword.toggle()}) {
-                                    Image(systemName: showPassword ? "eye" : "eye.slash")
+                                Button(action: { viewModel.showPassword.toggle()}) {
+                                    Image(systemName: viewModel.showPassword ? "eye" : "eye.slash")
                                         .foregroundColor(.secondary)
                                 }
                             }
@@ -121,7 +113,7 @@ struct LoginView: View {
                                 Spacer()
                                 
                                 Button("Forgot Password?") {
-                                    showForgotPassword = true
+                                    viewModel.showForgotPassword = true
                                 }
                                 .font(.subheadline)
                                 .foregroundColor(.blue)
@@ -130,12 +122,12 @@ struct LoginView: View {
 //                            Spacer()
                             
                             Button {
-                                handleLogin()
+                                viewModel.handleLogin()
                             } label: {
                                 HStack{
                                     Spacer()
                                     
-                                    if isLoading {
+                                    if viewModel.isLoading {
                                         ProgressView()
                                             .scaleEffect(0.8)
                                             .foregroundColor(.white)
@@ -167,16 +159,16 @@ struct LoginView: View {
                                 .cornerRadius(10)
                             }
                             .disabled(
-                                email.isEmpty || password.isEmpty || isLoading
+                                viewModel.email.isEmpty || viewModel.password.isEmpty || viewModel.isLoading
                             )
-                            .opacity(email.isEmpty || password.isEmpty || isLoading ? 0.6 : 1.0)
+                            .opacity(viewModel.email.isEmpty || viewModel.password.isEmpty || viewModel.isLoading ? 0.6 : 1.0)
                             
                             HStack{
                                 Text("Don't have an account?")
                                     .foregroundColor(.secondary)
                                 
                                 Button("Sign Up"){
-                                    showSignUp = true
+                                    viewModel.showSignUp = true
                                 }
                                 .foregroundColor(.blue)
                             }
@@ -193,16 +185,16 @@ struct LoginView: View {
             }
 //            .navigationBarHidden(true)
             .toolbar(.hidden, for: .navigationBar)
-            .onAppear { logoAppeared = true }
+            .onAppear { viewModel.logoAppeared = true }
             
             .navigationDestination(
-                isPresented: $showForgotPassword
+                isPresented: $viewModel.showForgotPassword
             ) {
                 ForgotPasswordView()
             }
             
             .navigationDestination(
-                isPresented: $showSignUp
+                isPresented: $viewModel.showSignUp
             ) {
                 SignupView(
                     alreadyLoggedIn: {
@@ -211,32 +203,10 @@ struct LoginView: View {
                 )
             }
             
-            .alert("Login Error", isPresented: $showErrorAlert) {
+            .alert("Login Error", isPresented: $viewModel.showErrorAlert) {
                 Button("OK", role: .cancel) {}
             } message: {
-                Text(alertMessage)
-            }
-        }
-    }
-    
-    private func handleLogin(){
-        guard !email.isEmpty, !password.isEmpty else {
-            alertMessage = "Please fill in all fields"
-            showErrorAlert = true
-            return
-        }
-        
-        isLoading = true
-        
-        Auth.auth().signIn(withEmail: email, password: password) { result, error in
-            DispatchQueue.main.async {
-                isLoading = false
-                if let error = error {
-                    alertMessage = error.localizedDescription
-                    showErrorAlert = true
-                } else {
-                    alreadyLoggedIn()
-                }
+                Text(viewModel.alertMessage)
             }
         }
     }
