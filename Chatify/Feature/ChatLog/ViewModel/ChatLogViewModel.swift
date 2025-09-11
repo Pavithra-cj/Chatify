@@ -73,12 +73,19 @@ class ChatLogViewModel: ObservableObject {
         
         let recipientMessageDocument = Firestore.firestore().collection("chats").document(toId).collection(fromId).document()
         
-        let messageData = [
+//        let messageData = [
+//            FirebaseConstants.fromId: fromId,
+//            FirebaseConstants.toId: toId,
+//            FirebaseConstants.message: self.chatText,
+//            FirebaseConstants.timestamp: Timestamp()
+//        ] as [String : Any]
+        
+        let messageData: [String: Any] = [
             FirebaseConstants.fromId: fromId,
             FirebaseConstants.toId: toId,
             FirebaseConstants.message: self.chatText,
-            "timeStamp": Timestamp()
-        ] as [String : Any]
+            FirebaseConstants.timestamp: FieldValue.serverTimestamp()
+        ]
         
         document.setData(messageData) { error in
             if let error = error {
