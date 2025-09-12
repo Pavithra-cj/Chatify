@@ -24,27 +24,12 @@ struct SignupView: View {
     var body: some View {
         NavigationStack{
             ZStack{
-                ZStack{
-                    Image("Background")
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .ignoresSafeArea()
-                    
-                    Color.black.opacity(0.8)
-                        .ignoresSafeArea()
-                }
+                BackgroundView()
                 
                 ScrollView {
                     VStack(spacing: 20){
                         
-                        VStack{
-                            
-                            Text("Chatify")
-                                .font(.title)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.white)
-                        }
-                        .padding(.top, 10)
+                        LogoView()
                         
                         VStack(spacing: 20) {
                             // Header
@@ -62,112 +47,24 @@ struct SignupView: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                             
                             // Profile Image Picker
-                            Button{
-                                viewModel.shouldShowImagePicker.toggle()
-                            } label: {
-                                VStack{
-                                    if let image = self.image {
-                                        Image(uiImage: image)
-                                            .resizable()
-                                            .scaledToFill()
-                                            .frame(width: 100, height: 100)
-                                            .clipShape(Circle())
-                                    } else {
-                                        Image(systemName: "person.fill")
-                                            .font(.system(size: 40))
-                                            .foregroundColor(.gray)
-                                            .frame(width: 100, height: 100)
-                                            .background(Color.gray.opacity(0.1))
-                                            .clipShape(Circle())
-                                    }
-                                }
-                                .overlay(
-                                    Circle()
-                                        .stroke(Color.gray.opacity(0.3), lineWidth: 2)
-                                )
-                                .overlay(
-                                    Image(systemName: "camera.fill")
-                                        .font(.system(size: 16))
-                                        .foregroundColor(.white)
-                                        .background(
-                                            Circle()
-                                                .fill(Color.blue)
-                                                .frame(width: 30, height: 30)
-                                        )
-                                        .offset(x: 35, y: 35)
-                                )
-                            }
+                            ProfileImagePicker(viewModel: viewModel)
                             
                             // Form Fields
-                            VStack(spacing: 15) {
-                                TextField("Username", text: $viewModel.username)
-                                    .textInputAutocapitalization(.never)
-                                    .padding()
-                                    .background(Color.white)
-                                    .cornerRadius(8)
-                                    .overlay(RoundedRectangle(cornerRadius: 8)
-                                        .stroke(Color.gray, lineWidth: 1))
+                            VStack(spacing: 15){
+                                MyTextField("Username", text: $viewModel.username)
+                                MyTextField("Full Name", text: $viewModel.name)
+                                MyTextField("Email", text: $viewModel.email, keyboard: .emailAddress)
                                 
-                                TextField("Full Name", text: $viewModel.name)
-                                    .textInputAutocapitalization(.words)
-                                    .padding()
-                                    .background(Color.white)
-                                    .cornerRadius(8)
-                                    .overlay(RoundedRectangle(cornerRadius: 8)
-                                        .stroke(Color.gray, lineWidth: 1))
-                                
-                                TextField("Email", text: $viewModel.email)
-                                    .textInputAutocapitalization(.never)
-                                    .keyboardType(.emailAddress)
-                                    .padding()
-                                    .background(Color.white)
-                                    .cornerRadius(8)
-                                    .overlay(RoundedRectangle(cornerRadius: 8)
-                                        .stroke(Color.gray, lineWidth: 1))
-                                
-                                // Password field with show/hide toggle
-                                HStack{
-                                    Group{
-                                        if viewModel.showPassword {
-                                            TextField("Password", text: $viewModel.password)
-                                        } else {
-                                            SecureField("Password", text: $viewModel.password)
-                                        }
-                                    }
-                                    
-                                    Button(action: { viewModel.showPassword.toggle()}) {
-                                        Image(systemName: viewModel.showPassword ? "eye" : "eye.slash")
-                                            .foregroundColor(.secondary)
-                                    }
-                                }
-                                .padding()
-                                .background(Color.white)
-                                .cornerRadius(8)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .stroke(Color.gray, lineWidth: 1))
-                                
-                                // Confirm Password field with show/hide toggle
-                                HStack{
-                                    Group{
-                                        if viewModel.showConfirmPassword {
-                                            TextField("Confirm Password", text: $viewModel.confirmPassword)
-                                        } else {
-                                            SecureField("Confirm Password", text: $viewModel.confirmPassword)
-                                        }
-                                    }
-                                    
-                                    Button(action: { viewModel.showConfirmPassword.toggle()}) {
-                                        Image(systemName: viewModel.showConfirmPassword ? "eye" : "eye.slash")
-                                            .foregroundColor(.secondary)
-                                    }
-                                }
-                                .padding()
-                                .background(Color.white)
-                                .cornerRadius(8)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .stroke(Color.gray, lineWidth: 1))
+                                PasswordField(
+                                    placeholder: "Password",
+                                    text: $viewModel.password,
+                                    showPassword: $viewModel.showPassword
+                                )
+                                PasswordField(
+                                    placeholder: "Confirm Password",
+                                    text: $viewModel.confirmPassword,
+                                    showPassword: $viewModel.showConfirmPassword
+                                )
                             }
                             
                             // Sign Up Button
@@ -262,8 +159,116 @@ struct SignupView: View {
             }
         }
     }
-    
 }
+
+struct BackgroundView: View {
+    var body: some View {
+        ZStack {
+            Image("Background")
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .ignoresSafeArea()
+            
+            Color.black.opacity(0.8)
+                .ignoresSafeArea()
+        }
+    }
+}
+
+struct LogoView: View {
+    var body: some View {
+        VStack {
+            Text("Chatify")
+                .font(.title)
+                .fontWeight(.semibold)
+                .foregroundColor(.white)
+        }
+        .padding(.top, 10)
+    }
+}
+
+struct ProfileImagePicker: View {
+    @ObservedObject var viewModel: SignupViewModel
+    
+    var body: some View {
+        Button {
+            viewModel.shouldShowImagePicker.toggle()
+        } label: {
+            VStack {
+                if let image = viewModel.image {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 100, height: 100)
+                        .clipShape(Circle())
+                } else {
+                    Image(systemName: "person.fill")
+                        .font(.system(size: 40))
+                        .foregroundColor(.gray)
+                        .frame(width: 100, height: 100)
+                        .background(Color.gray.opacity(0.1))
+                        .clipShape(Circle())
+                }
+            }
+            .overlay(Circle().stroke(Color.gray.opacity(0.3), lineWidth: 2))
+            .overlay(
+                Image(systemName: "camera.fill")
+                    .font(.system(size: 16))
+                    .foregroundColor(.white)
+                    .background(Circle().fill(Color.blue).frame(width: 30, height: 30))
+                    .offset(x: 35, y: 35)
+            )
+        }
+    }
+}
+
+struct MyTextField: View {
+    var placeholder: String
+    @Binding var text: String
+    var keyboard: UIKeyboardType = .default
+    
+    init(_ placeholder: String, text: Binding<String>, keyboard: UIKeyboardType = .default) {
+        self.placeholder = placeholder
+        self._text = text
+        self.keyboard = keyboard
+    }
+    
+    var body: some View {
+        TextField(placeholder, text: $text)
+            .keyboardType(keyboard)
+            .padding()
+            .background(Color.white)
+            .cornerRadius(8)
+            .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.gray, lineWidth: 1))
+    }
+}
+
+struct PasswordField: View {
+    var placeholder: String
+    @Binding var text: String
+    @Binding var showPassword: Bool
+    
+    var body: some View {
+        HStack {
+            Group {
+                if showPassword {
+                    TextField(placeholder, text: $text)
+                } else {
+                    SecureField(placeholder, text: $text)
+                }
+            }
+            Button { showPassword.toggle() } label: {
+                Image(systemName: showPassword ? "eye" : "eye.slash")
+                    .foregroundColor(.secondary)
+            }
+        }
+        .padding()
+        .background(Color.white)
+        .cornerRadius(8)
+        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.gray, lineWidth: 1))
+    }
+}
+
 
 #Preview {
     SignupView(alreadyLoggedIn: {

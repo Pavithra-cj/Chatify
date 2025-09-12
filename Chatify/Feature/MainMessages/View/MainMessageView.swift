@@ -7,6 +7,9 @@
 
 import SwiftUI
 import SDWebImageSwiftUI
+import Firebase
+import FirebaseAuth
+import FirebaseFirestore
 
 struct MainMessageView: View {
     @State var shouldShowLogOutOptions = false
@@ -114,9 +117,21 @@ struct MainMessageView: View {
         ScrollView{
             ForEach(vm.recentMessages) { recentMessage in
                 VStack{
-                    NavigationLink{
-                        Text("Destination")
-                    } label: {
+                    Button(action: {
+                        let currentUserId = Auth.auth().currentUser?.uid ?? ""
+                        let chatUserId = recentMessage.fromId == currentUserId ? recentMessage.toId : recentMessage.fromId
+                        
+                        let chatUserData: [String: Any] = [
+                            "uid": chatUserId,
+                            "name": recentMessage.displayName,
+                            "username": recentMessage.displayName,
+                            "email": "",
+                            "profileImage": recentMessage.profileImageUrl
+                        ]
+                        
+                        self.chatUser = ChatUser(data: chatUserData)
+                        self.shouldNavigateToChatLogView = true
+                    }) {
                         HStack(spacing: 16){
                             if let imageData = Data(base64Encoded: recentMessage.profileImageUrl),
                                let uiImage = UIImage(data: imageData) {
