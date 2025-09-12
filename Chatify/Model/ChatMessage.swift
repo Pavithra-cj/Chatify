@@ -18,18 +18,11 @@ struct ChatMessage: Identifiable {
     let fromId: String
     let toId: String
     let message: String
-    let timestamp: Date
     
     init(documentId: String, data: [String: Any]){
         self.documentId = documentId
         self.fromId = data[FirebaseConstants.fromId] as? String ?? ""
         self.toId = data[FirebaseConstants.toId] as? String ?? ""
         self.message = data[FirebaseConstants.message] as? String ?? ""
-        
-        if let ts = data[FirebaseConstants.timestamp] as? Timestamp {
-            self.timestamp = ts.dateValue()
-        } else {
-            self.timestamp = Date()
-        }
     }
 }

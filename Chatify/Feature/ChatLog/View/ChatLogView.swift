@@ -69,86 +69,39 @@ struct ChatLogView: View {
     
     struct MessageBubbleView: View {
         let message: ChatMessage
-        @State private var showTime = false
-        
-        var isCurrentUser: Bool {
-            message.fromId == Auth.auth().currentUser?.uid
-        }
         
         var body: some View {
-            VStack(alignment: isCurrentUser ? .trailing : .leading, spacing: 4) {
-                HStack {
-                    if isCurrentUser { Spacer(minLength: 60) }
-                    
-                    VStack(alignment: isCurrentUser ? .trailing : .leading, spacing: 4) {
-                        // Message Bubble
-                        HStack {
-                            if !isCurrentUser {
-                                Text(message.message)
-                                    .font(.body)
-                                    .foregroundStyle(.primary)
-                                    .multilineTextAlignment(.leading)
-                            } else {
-                                Text(message.message)
-                                    .font(.body)
-                                    .foregroundStyle(.white)
-                                    .multilineTextAlignment(.trailing)
-                            }
-                        }
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 12)
-                        .background {
-                            if isCurrentUser {
-                                LinearGradient(
-                                    colors: [.blue, .blue.opacity(0.8)],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            } else {
-                                Color(.systemGray5)
-                            }
-                        }
-                        .clipShape(
-                            UnevenRoundedRectangle(
-                                topLeadingRadius: isCurrentUser ? 20 : 4,
-                                bottomLeadingRadius: 20,
-                                bottomTrailingRadius: isCurrentUser ? 4 : 20,
-                                topTrailingRadius: 20
-                            )
-                        )
-                        .shadow(
-                            color: .black.opacity(0.05),
-                            radius: 8,
-                            x: 0,
-                            y: 2
-                        )
+            VStack{
+                if message.fromId == Auth.auth().currentUser?.uid {
+                    HStack{
+                        Spacer()
                         
-                        // Timestamp
-                        if showTime {
-                            Text(formatTimestamp(message.timestamp))
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                                .padding(.horizontal, 4)
+                        HStack{
+                            Text(message.message)
+                                .foregroundColor(.white)
                         }
+                        .padding()
+                        .background(Color.blue)
+                        .cornerRadius(10)
+                        .shadow(radius: 5)
                     }
-                    
-                    if !isCurrentUser { Spacer(minLength: 60) }
+                } else {
+                    HStack{
+                        HStack{
+                            Text(message.message)
+                                .foregroundColor(.black)
+                        }
+                        .padding()
+                        .background(Color.white)
+                        .cornerRadius(10)
+                        .shadow(radius: 5)
+                        
+                        Spacer()
+                    }
                 }
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 2)
-            .contentShape(Rectangle())
-            .onTapGesture {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    showTime.toggle()
-                }
-            }
-        }
-        
-        private func formatTimestamp(_ timestamp: Date) -> String {
-            let formatter = DateFormatter()
-            formatter.timeStyle = .short
-            return formatter.string(from: timestamp)
+            .padding(.horizontal)
+            .padding(.top, 8)
         }
     }
     
@@ -231,15 +184,6 @@ struct ChatLogView: View {
         ScrollViewReader { scrollViewProxy in
             ScrollView {
                 LazyVStack(spacing: 8) {
-                    // Date Header
-                    Text("Today")
-                        .font(.caption)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(.secondary)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(.ultraThinMaterial, in: Capsule())
-                        .padding(.top, 16)
                     
                     ForEach(vm.chatMessages) { message in
                         MessageBubbleView(message: message)
@@ -266,58 +210,42 @@ struct ChatLogView: View {
     }
     
     private var inputView: some View {
-        VStack(spacing: 0) {
-            // Input Container
-            HStack(spacing: 12) {
-                // Attachment Button
-                Button(action: {}) {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.title2)
-                        .foregroundStyle(.blue)
-                        .background(.white, in: Circle())
-                }
-                
-                // Text Input
-                HStack(spacing: 8) {
-                    // Text Field
-                    TextField("Message", text: $vm.chatText, axis: .vertical)
-                        .textFieldStyle(.plain)
-                        .font(.body)
-                        .focused($isTextFieldFocused)
-                        .lineLimit(1...6)
-                        .onChange(of: vm.chatText) { _, newValue in
-                            // Simulate typing indicator
-                            isTyping = !newValue.isEmpty
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                                isTyping = false
-                            }
-                        }
-                    
-                    // Send Button
-                    Button(action: {
-                        vm.handleSendMessage()
-                        isTextFieldFocused = false
-                    }) {
-                        Image(systemName: "arrow.up.circle.fill")
-                            .font(.title2)
-                            .foregroundStyle(vm.chatText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? .gray : .blue)
-                            .scaleEffect(vm.chatText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 1.0 : 1.1)
-                            .animation(.easeInOut(duration: 0.2), value: vm.chatText.isEmpty)
+        HStack(spacing: 16){
+            
+            Image(systemName: "plus.circle")
+                .font(.system(size: 24))
+                .foregroundColor(Color(.darkGray))
+            
+            HStack{
+                ZStack(alignment: .leading) {
+                    if vm.chatText.isEmpty {
+                        Text("Text Message")
+                            .foregroundColor(Color(.darkGray))
+                            .padding(.leading, 12)
+                            .padding(.top, 8)
                     }
-                    .disabled(vm.chatText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    
+                    TextEditor(text: $vm.chatText)
+                        .foregroundColor(Color(.darkGray))
+                        .padding(.leading, 4)
+                        .frame(height: 40)
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
-                .background(.background, in: Capsule())
                 .overlay(
-                    Capsule()
-                        .stroke(.separator, lineWidth: 0.5)
+                    RoundedRectangle(cornerRadius: 30)
+                        .stroke(Color(.darkGray), lineWidth: 1)
                 )
+                
+                Button{
+                    vm.handleSendMessage()
+                } label: {
+                    Image(systemName: "arrow.up.circle.fill")
+                        .font(.system(size: 32))
+                }
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
+            
         }
-        .background(.regularMaterial)
+        .padding(.horizontal)
+        .padding(.vertical, 8)
     }
 }
 
