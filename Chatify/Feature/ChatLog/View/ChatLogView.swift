@@ -19,58 +19,53 @@ struct ChatLogView: View {
     
     @ObservedObject var vm: ChatLogViewModel
     
-    @State private var keyboardHeight: CGFloat = 0
-    @State private var isTyping = false
-    @FocusState private var isTextFieldFocused: Bool
-    
-    @Environment(\.dismiss) private var dismiss
-    
     static let emptyScrollToString = "Empty"
     
     var body: some View {
-        GeometryReader { geometry in
-            VStack(spacing: 0){
-                
-                customNavigationHeader
-                
+        VStack{
+            
+            ZStack{
                 messageView
-                    .background(
-                        LinearGradient(
-                            colors: [
-                                Color(.systemBackground),
-                                Color(.systemGray6).opacity(0.3)
-                            ],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    )
-                
-                inputView
-                    .background(
-                        .ultraThinMaterial,
-                        in: Rectangle()
-                    )
-                
+                Text(vm.errorMessage)
             }
-//            .navigationTitle(chatUser?.name ?? "")
-//            .navigationBarTitleDisplayMode(.inline)
-            .navigationBarHidden(true)
-            .ignoresSafeArea(.keyboard, edges: .bottom)
-            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { notification in
-                if let keyboardFrame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? NSValue {
-                    keyboardHeight = keyboardFrame.cgRectValue.height
+            
+            inputView
+            
+        }
+        .navigationTitle(chatUser?.name ?? "")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+    
+    private var messageView: some View {
+        ScrollView{
+            ScrollViewReader { scrollViewProxy in
+                VStack{
+                    ForEach(vm.chatMessages) { message in
+                        
+                        MessageBubbleView(message: message)
+                        
+                    }
+                    
+                    HStack{
+                        Spacer()
+                    }
+                    .id(Self.emptyScrollToString)
+                }
+                .onReceive(vm.$count) { _ in
+                    withAnimation(.easeOut(duration: 0.5)){
+                        scrollViewProxy
+                            .scrollTo(Self.emptyScrollToString, anchor: .bottom)
+                    }
                 }
             }
-            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
-                keyboardHeight = 0
-            }
         }
+        .background(Color(.init(white: 0.95, alpha: 1)))
     }
     
     struct MessageBubbleView: View {
         let message: ChatMessage
         
-        var body: some View {
+        var body: some View{
             VStack{
                 if message.fromId == Auth.auth().currentUser?.uid {
                     HStack{
@@ -102,110 +97,6 @@ struct ChatLogView: View {
             }
             .padding(.horizontal)
             .padding(.top, 8)
-        }
-    }
-    
-    private var customNavigationHeader: some View {
-        HStack (spacing: 12) {
-            
-            //Back Button
-            Button(action: {
-                dismiss()
-            }) {
-                Image(systemName: "chevron.left")
-                    .font(.title2)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.primary)
-            }
-            
-            //Profile Image
-            AsyncImage(url: URL(string: chatUser?.profileImage ?? "")) { image in
-                image
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-            } placeholder: {
-                Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: [.blue, .purple],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .overlay(
-                        Text(chatUser?.name.prefix(1) ?? "?")
-                            .font(.headline)
-                            .fontWeight(.semibold)
-                            .foregroundColor(.white)
-                    )
-            }
-            .frame(width: 40, height: 40)
-            .clipShape(Circle())
-            .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
-            
-            //User Info
-            VStack(alignment: .leading, spacing: 2) {
-                Text(chatUser?.name ?? "Unknown")
-                    .font(.headline)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(.primary)
-                
-                HStack(spacing: 4) {
-                    Circle()
-                        .fill(.green)
-                        .frame(width: 8, height: 8)
-                    
-                    Text("Online")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-            
-            Spacer()
-            
-            Button(action: {}) {
-                Image(systemName: "ellipsis")
-                    .font(.title3)
-                    .foregroundStyle(.primary)
-            }
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .background(.ultraThinMaterial)
-        .overlay(
-            Rectangle()
-                .frame(height: 0.5)
-                .foregroundStyle(.separator),
-            alignment: .bottom
-        )
-    }
-    
-    private var messageView: some View {
-        ScrollViewReader { scrollViewProxy in
-            ScrollView {
-                LazyVStack(spacing: 8) {
-                    
-                    ForEach(vm.chatMessages) { message in
-                        MessageBubbleView(message: message)
-                            .transition(.asymmetric(
-                                insertion: .scale(scale: 0.8).combined(with: .opacity),
-                                removal: .opacity
-                            ))
-                    }
-                    
-                    // Scroll Anchor
-                    Color.clear
-                        .frame(height: 1)
-                        .id(Self.emptyScrollToString)
-                }
-                .padding(.bottom, 16)
-            }
-            .scrollDismissesKeyboard(.interactively)
-            .onReceive(vm.$count) { _ in
-                withAnimation(.easeOut(duration: 0.5)) {
-                    scrollViewProxy.scrollTo(Self.emptyScrollToString, anchor: .bottom)
-                }
-            }
         }
     }
     

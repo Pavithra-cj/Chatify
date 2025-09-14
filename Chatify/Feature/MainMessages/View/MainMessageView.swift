@@ -131,6 +131,7 @@ struct MainMessageView: View {
                         
                         self.chatUser = ChatUser(data: chatUserData)
                         self.shouldNavigateToChatLogView = true
+                        print("Go to chat log with user: \(self.chatUser?.uid ?? "" )")
                     }) {
                         HStack(spacing: 16){
                             if let imageData = Data(base64Encoded: recentMessage.profileImageUrl),

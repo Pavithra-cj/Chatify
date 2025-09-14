@@ -18,6 +18,7 @@ class MainMessagesViewModel: ObservableObject{
     @Published var isUserCurrentlyLoggedOut: Bool = false
     
     @Published var recentMessages = [RecentMessage]()
+    private var listener: ListenerRegistration?
     
     init() {
         
@@ -30,47 +31,46 @@ class MainMessagesViewModel: ObservableObject{
         fetchRecentMessages()
     }
     
+    deinit {
+        listener?.remove()
+    }
+    
     private func fetchRecentMessages(){
         guard let uid = Auth.auth().currentUser?.uid else { return }
         
-        Firestore
+        // Remove old listener if any
+        listener?.remove()
+        
+        listener = Firestore
             .firestore()
             .collection("recent_chats")
             .document(uid)
             .collection("messages")
-            .order(by: "timestamp")
-            .addSnapshotListener{
-                querySnapshot,
-                error in
+            .order(by: FirebaseConstants.timestamp, descending: true)
+            .addSnapshotListener { [weak self] snapshot, error in
+                guard let self = self else { return }
+                
                 if let error = error {
-                    self.errorMessage = "Failed to listen recent messages: \(error)"
-                    print("Failed to listen recent messages: \(error)")
+                    print("Failed to fetch recent messages: \(error.localizedDescription)")
                     return
                 }
                 
-                querySnapshot?.documentChanges.forEach({ change in
+                snapshot?.documentChanges.forEach { change in
+                    let data = change.document.data()
                     let docId = change.document.documentID
+                    let recent = RecentMessage(documentId: docId, data: data)
                     
-                    if let index = self.recentMessages.firstIndex(where: {rm in
-                        return rm.documentId == docId
-                    }) {
-                        self.recentMessages.remove(at: index)
+                    if let index = self.recentMessages.firstIndex(where: { $0.documentId == docId }) {
+                        // Update existing
+                        self.recentMessages[index] = recent
+                    } else {
+                        // Insert new
+                        self.recentMessages.insert(recent, at: 0)
                     }
-                    
-                    self.recentMessages
-                        .insert(
-                            .init(documentId: docId, data: change.document.data()), at: 0
-                        )
-                    
-                    //                    self.recentMessages
-                    //                        .append(
-                    //                            .init(
-                    //                                documentId: docId,
-                    //                                data: change.document.data()
-                    //                            )
-                    //                        )
-                })
-                print ("Recent Messages Fetched Successfully")
+                }
+                
+                // Ensure sorted by timestamp
+                self.recentMessages.sort { $0.timestamp.dateValue() > $1.timestamp.dateValue() }
             }
     }
     
