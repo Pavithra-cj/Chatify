@@ -10,6 +10,8 @@ import SwiftUI
 import Firebase
 import FirebaseAuth
 import FirebaseFirestore
+import MapKit
+import CoreLocation
 
 class ChatLogViewModel: ObservableObject {
     @Published var chatText = ""
@@ -160,5 +162,17 @@ class ChatLogViewModel: ObservableObject {
             }
             print("Recipient successfully updated recent chat")
         }
+    }
+    
+    func sendImage(_ image: UIImage) {
+        guard let imageData = image.jpegData(compressionQuality: 0.5) else { return }
+        
+        // Upload image to Firebase Storage and get URL
+        // Then send message with image URL and messageType = "image"
+    }
+    
+    func sendLocation(_ coordinate: CLLocationCoordinate2D) {
+        let locationString = "\(coordinate.latitude),\(coordinate.longitude)"
+        // Send message with location string and messageType = "location"
     }
 }
