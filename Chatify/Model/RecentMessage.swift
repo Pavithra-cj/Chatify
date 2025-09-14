@@ -29,11 +29,9 @@ struct RecentMessage: Identifiable {
         self.message = data[FirebaseConstants.message] as? String ?? ""
         self.fromId = data[FirebaseConstants.fromId] as? String ?? ""
         self.toId = data[FirebaseConstants.toId] as? String ?? ""
+        self.timestamp = data[FirebaseConstants.timestamp] as? Timestamp ?? Timestamp(date: Date())
         self.profileImageUrl = data["profileImageUrl"] as? String ?? ""
         self.displayName = data["displayName"] as? String ?? ""
-        self.timestamp = data["timestamp"] as? Timestamp ?? Timestamp(
-            date: Date()
-        )
     }
     
     var timeAgoDisplay: String {
