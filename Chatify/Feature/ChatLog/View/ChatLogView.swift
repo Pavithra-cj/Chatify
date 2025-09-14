@@ -154,92 +154,6 @@ struct ChatLogView: View {
         }
     }
     
-//    struct MessageBubbleView: View {
-//        let message: ChatMessage
-//        @Environment(\.colorScheme) var colorScheme
-//        
-//        var isFromCurrentUser: Bool {
-//            message.fromId == Auth.auth().currentUser?.uid
-//        }
-//        
-//        var body: some View {
-//            HStack {
-//                if isFromCurrentUser { Spacer() }
-//                
-//                Text(message.message)
-//                    .padding(.horizontal, 16)
-//                    .padding(.vertical, 12)
-//                    .background(
-//                        isFromCurrentUser ?
-//                        Color.blue :
-//                            (colorScheme == .dark ? Color(.systemGray5) : Color.white)
-//                    )
-//                    .foregroundStyle(isFromCurrentUser ? .white : .primary)
-//                    .clipShape(
-//                        RoundedRectangle(cornerRadius: 20)
-//                    )
-//                    .shadow(color: Color.black.opacity(0.05), radius: 5, y: 5)
-//                
-//                if !isFromCurrentUser { Spacer() }
-//            }
-//        }
-//    }
-    
-    struct MessageBubble: View {
-        let message: ChatMessage
-        @ObservedObject var vm: ChatLogViewModel
-        @Environment(\.colorScheme) var colorScheme
-        
-        var isFromCurrentUser: Bool {
-            message.fromId == Auth.auth().currentUser?.uid
-        }
-        
-        var body: some View {
-            HStack {
-                if isFromCurrentUser { Spacer() }
-                
-                VStack(alignment: isFromCurrentUser ? .trailing : .leading) {
-                    messageContent
-                    Text(message.timestamp.dateValue().formatted(.dateTime.hour().minute()))
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
-                        .padding(.horizontal, 4)
-                }
-                
-                if !isFromCurrentUser { Spacer() }
-            }
-        }
-        
-        @ViewBuilder
-        private var messageContent: some View {
-            switch message.messageType {
-            case .text:
-                Text(message.message)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
-                    .background(isFromCurrentUser ? Color.blue : (colorScheme == .dark ? Color(.systemGray5) : Color.white))
-                    .foregroundStyle(isFromCurrentUser ? .white : .primary)
-                    .clipShape(RoundedRectangle(cornerRadius: 20))
-            case .image:
-                if let imageUrl = URL(string: message.message) {
-                    AsyncImage(url: imageUrl) { image in
-                        image
-                            .resizable()
-                            .scaledToFit()
-                            .frame(maxWidth: 200)
-                            .clipShape(RoundedRectangle(cornerRadius: 20))
-                    } placeholder: {
-                        ProgressView()
-                    }
-                }
-            case .location:
-                LocationPreview(coordinate: ChatMessage.extractCoordinate(from: message.message))
-                    .frame(width: 200, height: 200)
-                    .clipShape(RoundedRectangle(cornerRadius: 20))
-            }
-        }
-    }
-    
     private var inputBarView: some View {
         HStack(spacing: 12) {
             Button(action: { showMediaPicker.toggle() }) {
@@ -302,6 +216,78 @@ struct DateSeparatorView: View {
     }
 }
 
+struct MessageBubble: View {
+    let message: ChatMessage
+    @ObservedObject var vm: ChatLogViewModel
+    @Environment(\.colorScheme) var colorScheme
+    
+    var isFromCurrentUser: Bool {
+        message.fromId == Auth.auth().currentUser?.uid
+    }
+    
+    var body: some View {
+        HStack {
+            if isFromCurrentUser { Spacer() }
+            
+            VStack(alignment: isFromCurrentUser ? .trailing : .leading) {
+                messageContent
+            }
+            
+            if !isFromCurrentUser { Spacer() }
+        }
+    }
+    
+    @ViewBuilder
+    private var messageContent: some View {
+        switch message.messageType {
+        case .text:
+            VStack(alignment: isFromCurrentUser ? .trailing : .leading, spacing: 4) {
+                Text(message.message)
+                Text(message.timestamp.dateValue().formatted(.dateTime.hour().minute()))
+                    .font(.system(size: 11))
+                    .foregroundStyle(isFromCurrentUser ? .white.opacity(0.8) : .secondary)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(isFromCurrentUser ? Color.blue : (colorScheme == .dark ? Color(.systemGray5) : Color.white))
+            .foregroundStyle(isFromCurrentUser ? .white : .primary)
+            .clipShape(RoundedRectangle(cornerRadius: 20))
+        case .image:
+            if let imageUrl = URL(string: message.message) {
+                VStack(alignment: isFromCurrentUser ? .trailing : .leading, spacing: 4) {
+                    AsyncImage(url: imageUrl) { image in
+                        image
+                            .resizable()
+                            .scaledToFit()
+                            .frame(maxWidth: 200)
+                    } placeholder: {
+                        ProgressView()
+                    }
+                    Text(message.timestamp.dateValue().formatted(.dateTime.hour().minute()))
+                        .font(.system(size: 11))
+                        .foregroundStyle(isFromCurrentUser ? .white.opacity(0.8) : .secondary)
+                        .padding(.horizontal, 8)
+                        .padding(.bottom, 4)
+                }
+                .background(isFromCurrentUser ? Color.blue : (colorScheme == .dark ? Color(.systemGray5) : Color.white))
+                .clipShape(RoundedRectangle(cornerRadius: 20))
+            }
+        case .location:
+            VStack(alignment: isFromCurrentUser ? .trailing : .leading, spacing: 4) {
+                LocationPreview(coordinate: ChatMessage.extractCoordinate(from: message.message))
+                    .frame(width: 200, height: 200)
+                Text(message.timestamp.dateValue().formatted(.dateTime.hour().minute()))
+                    .font(.system(size: 11))
+                    .foregroundStyle(isFromCurrentUser ? .white.opacity(0.8) : .secondary)
+                    .padding(.horizontal, 8)
+                    .padding(.bottom, 4)
+            }
+            .background(isFromCurrentUser ? Color.blue : (colorScheme == .dark ? Color(.systemGray5) : Color.white))
+            .clipShape(RoundedRectangle(cornerRadius: 20))
+        }
+    }
+}
+
 struct CustomTextField: View {
     @Binding var text: String
     let placeholder: String
@@ -334,7 +320,7 @@ struct LocationPreview: View {
     }
 }
 
-extension ChatLogView.MessageBubble {
+extension MessageBubble {
     var shouldShowDate: Bool {
         guard let currentIndex = vm.chatMessages.firstIndex(where: { $0.id == message.id }) else {
             return false
