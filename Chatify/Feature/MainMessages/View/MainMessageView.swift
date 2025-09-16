@@ -200,10 +200,17 @@ struct MainMessageView: View {
             .shadow(radius: 15)
         }
         .fullScreenCover(isPresented: $shouldShowNewChatOptions, onDismiss: nil){
-            CreateNewMessageView(didSelectNewUser: { user in
-                print(user.email)
+            CreateNewMessageView(didSelectUser: { friend in
+                print(friend.email)
                 self.shouldNavigateToChatLogView.toggle()
-                self.chatUser = user
+                // Convert Friend to ChatUser
+                self.chatUser = ChatUser(data: [
+                    "uid": friend.userId,
+                    "email": friend.email,
+                    "username": friend.username,
+                    "profileImage": friend.profileImageUrl ?? "",
+                    "name": friend.name
+                ])
             })
         }
     }
@@ -235,7 +242,7 @@ struct MainMessageView: View {
         let friendId = code.components(separatedBy: "_").first ?? ""
         
         let db = Firestore.firestore()
-        db.collection("users").document(currentUserId).updateData([
+        db.collection("user").document(currentUserId).updateData([
             "friends": FieldValue.arrayUnion([friendId])
         ])
         

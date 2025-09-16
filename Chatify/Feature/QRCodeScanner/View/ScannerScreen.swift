@@ -11,8 +11,8 @@ import AVFoundation
 struct ScannerScreen: View {
     @StateObject private var viewModel = QRCodeScannerViewModel()
     @Environment(\.dismiss) var dismiss
-    @State private var showingAlert = false
-    @State private var alertMessage = ""
+    @State private var showingPermissionAlert = false
+    @State private var permissionAlertMessage = ""
     @State private var isCheckingPermission = true
     
     var body: some View {
@@ -38,10 +38,10 @@ struct ScannerScreen: View {
             }
             .navigationTitle("Scan QR Code")
             .navigationBarTitleDisplayMode(.inline)
-            .navigationBarItems(trailing: Button("Cancel") {
+            .navigationBarItems(trailing: Button("Done") {
                 dismiss()
             })
-            .alert("Error", isPresented: $showingAlert) {
+            .alert("Camera Permission", isPresented: $showingPermissionAlert) {
                 Button("Settings", role: .none) {
                     if let url = URL(string: UIApplication.openSettingsURLString) {
                         UIApplication.shared.open(url)
@@ -49,7 +49,15 @@ struct ScannerScreen: View {
                 }
                 Button("OK", role: .cancel) {}
             } message: {
-                Text(alertMessage)
+                Text(permissionAlertMessage)
+            }
+            .alert(viewModel.alertMessage, isPresented: $viewModel.showAlert) {
+                Button("OK") {
+                    // After successful friend addition, dismiss the screen
+                    if viewModel.alertMessage.contains("successfully") {
+                        dismiss()
+                    }
+                }
             }
             .onAppear {
                 checkCameraPermission()
@@ -66,20 +74,20 @@ struct ScannerScreen: View {
                 DispatchQueue.main.async {
                     isCheckingPermission = false
                     if !granted {
-                        showCameraPermissionAlert()
+                        showPermissionAlert()
                     }
                 }
             }
         case .denied, .restricted:
             isCheckingPermission = false
-            showCameraPermissionAlert()
+            showPermissionAlert()
         @unknown default:
             isCheckingPermission = false
         }
     }
     
-    private func showCameraPermissionAlert() {
-        alertMessage = "Camera access is required to scan QR codes. Please enable it in Settings."
-        showingAlert = true
+    private func showPermissionAlert() {
+        permissionAlertMessage = "Camera access is required to scan QR codes. Please enable it in Settings."
+        showingPermissionAlert = true
     }
 }
