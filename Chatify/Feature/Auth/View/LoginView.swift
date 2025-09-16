@@ -89,11 +89,13 @@ struct LoginView: View {
                                 Group{
                                     if viewModel.showPassword {
                                         TextField("Password", text: $viewModel.password)
+                                            .textInputAutocapitalization(.never)
                                     } else {
                                         SecureField(
                                             "Password",
                                             text: $viewModel.password
                                         )
+                                        .textInputAutocapitalization(.never)
                                     }
                                 }
                                 

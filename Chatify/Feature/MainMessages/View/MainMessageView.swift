@@ -16,32 +16,16 @@ struct MainMessageView: View {
     @State var shouldShowNewChatOptions = false
     @State var shouldNavigateToChatLogView = false
     
+    @Binding var showQRCode: Bool
+    @Binding var showScanner: Bool
+    
     @ObservedObject private var vm = MainMessagesViewModel()
+    @StateObject private var scannerViewModel = QRCodeScannerViewModel()
     
     @State var chatUser: ChatUser?
     
     private var customNavBar: some View {
-        HStack{
-            
-            //MARK: Only work with Firebase Storage
-            //            WebImage(url: URL(string: vm.chatUser?.profileImage ?? ""))
-            //                .resizable()
-            //                .scaledToFill()
-            //                .frame(width: 50, height: 50)
-            //                .clipped()
-            //                .cornerRadius(50)
-            //                .overlay(
-            //                    RoundedRectangle(
-            //                        cornerRadius: 44
-            //                    )
-            //                    .stroke(Color.black, lineWidth: 1)
-            //                )
-            //                .shadow(radius: 5)
-            
-            //Since I used base64 encode to store the image in firestore, directly decoding it is the best option.
-            
-            //MARK: Use this for now. Using Firestore
-            
+        HStack {
             if let base64String = vm.chatUser?.profileImage,
                let imageData = Data(base64Encoded: base64String),
                let uiImage = UIImage(data: imageData) {
@@ -51,12 +35,7 @@ struct MainMessageView: View {
                     .frame(width: 50, height: 50)
                     .clipped()
                     .cornerRadius(50)
-                    .overlay(
-                        RoundedRectangle(
-                            cornerRadius: 44
-                        )
-                        .stroke(Color.black, lineWidth: 1)
-                    )
+                    .overlay(RoundedRectangle(cornerRadius: 44).stroke(Color.black, lineWidth: 1))
                     .shadow(radius: 5)
             } else {
                 Image(systemName: "person.fill")
@@ -65,11 +44,11 @@ struct MainMessageView: View {
                     .clipShape(Circle())
             }
             
-            VStack(alignment: .leading, spacing: 4){
+            VStack(alignment: .leading, spacing: 4) {
                 Text("\(vm.chatUser?.username ?? "Username")")
                     .font(.system(size: 24, weight: .bold))
                 
-                HStack{
+                HStack {
                     Circle()
                         .foregroundColor(.green)
                         .frame(width: 8, height: 8)
@@ -78,16 +57,39 @@ struct MainMessageView: View {
                         .foregroundColor(Color(.lightGray))
                 }
             }
+            
             Spacer()
-            Button{
-                shouldShowLogOutOptions.toggle()
-            } label: {
-                Image(systemName: "gear")
-                    .font(.system(size: 24, weight: .bold))
-                    .foregroundColor(Color(.label))
+            
+            HStack(spacing: 16) {
+                Button {
+                    showQRCode.toggle()
+                } label: {
+                    Image(systemName: "qrcode")
+                        .font(.system(size: 24, weight: .bold))
+                        .foregroundColor(Color(.label))
+                }
+                
+                Button {
+                    showScanner.toggle()
+                } label: {
+                    Image(systemName: "camera.viewfinder")
+                        .font(.system(size: 24, weight: .bold))
+                        .foregroundColor(Color(.label))
+                }
             }
         }
         .padding()
+        .sheet(isPresented: $showQRCode) {
+            QRCodeDisplayView()
+        }
+        .sheet(isPresented: $showScanner) {
+            QRCodeScannerView(viewModel: scannerViewModel)
+                .onChange(of: scannerViewModel.scannedCode) { oldValue, newValue in
+                    if let code = newValue {
+                        handleScannedCode(code)
+                    }
+                }
+        }
         .actionSheet(isPresented: $shouldShowLogOutOptions) {
             .init(
                 title: Text("Settings"),
@@ -207,27 +209,40 @@ struct MainMessageView: View {
     }
     
     var body: some View {
-        NavigationView{
-            VStack{
+        NavigationStack {
+            VStack {
                 //Custom Navigation Bar
                 customNavBar
                 
                 //Messages View
                 messagesView
-                
-                NavigationLink("", isActive: $shouldNavigateToChatLogView) {
-                    ChatLogView(chatUser: self.chatUser)
-                }
             }
             .overlay(
                 newMessageButton, alignment: .bottom
             )
             .navigationBarHidden(true)
-            //            .navigationTitle("Main Message View")
+            .navigationDestination(isPresented: $shouldNavigateToChatLogView) {
+                if let chatUser = chatUser {
+                    ChatLogView(chatUser: chatUser)
+                }
+            }
         }
+    }
+    
+    private func handleScannedCode(_ code: String) {
+        // Add friend using scanned code
+        guard let currentUserId = Auth.auth().currentUser?.uid else { return }
+        let friendId = code.components(separatedBy: "_").first ?? ""
+        
+        let db = Firestore.firestore()
+        db.collection("users").document(currentUserId).updateData([
+            "friends": FieldValue.arrayUnion([friendId])
+        ])
+        
+        showScanner = false
     }
 }
 
 #Preview {
-    MainMessageView()
+    MainMessageView(showQRCode: .constant(false), showScanner: .constant(false))
 }
