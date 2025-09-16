@@ -112,4 +112,21 @@ class SignupViewModel: ObservableObject {
             }
         }
     }
+    
+    private func generateAndStoreQRCode(userId: String) {
+        let qrCodeString = "\(userId)_\(UUID().uuidString)"
+        let ref = Storage.storage().reference().child("users/\(userId)/qrcode.txt")
+        
+        ref.putData(qrCodeString.data(using: .utf8)!) { metadata, error in
+            if let error = error {
+                print("Failed to upload QR code: \(error)")
+                return
+            }
+            
+            Firestore.firestore().collection("users").document(userId).updateData([
+                "qrCode": qrCodeString,
+                "friends": []
+            ])
+        }
+    }
 }

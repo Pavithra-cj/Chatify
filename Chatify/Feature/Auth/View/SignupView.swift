@@ -53,7 +53,7 @@ struct SignupView: View {
                             VStack(spacing: 15){
                                 MyTextField("Username", text: $viewModel.username)
                                 MyTextField("Full Name", text: $viewModel.name)
-                                MyTextField("Email", text: $viewModel.email, keyboard: .emailAddress)
+                                MyTextField("Email", text: $viewModel.email, keyboard: .emailAddress, autocapitalization: .never)
                                 
                                 PasswordField(
                                     placeholder: "Password",
@@ -226,16 +226,19 @@ struct MyTextField: View {
     var placeholder: String
     @Binding var text: String
     var keyboard: UIKeyboardType = .default
+    var autocapitalization: TextInputAutocapitalization = .sentences
     
-    init(_ placeholder: String, text: Binding<String>, keyboard: UIKeyboardType = .default) {
+    init(_ placeholder: String, text: Binding<String>, keyboard: UIKeyboardType = .default, autocapitalization: TextInputAutocapitalization = .sentences) {
         self.placeholder = placeholder
         self._text = text
         self.keyboard = keyboard
+        self.autocapitalization = autocapitalization
     }
     
     var body: some View {
         TextField(placeholder, text: $text)
             .keyboardType(keyboard)
+            .textInputAutocapitalization(autocapitalization)
             .padding()
             .background(Color.white)
             .cornerRadius(8)
@@ -253,8 +256,10 @@ struct PasswordField: View {
             Group {
                 if showPassword {
                     TextField(placeholder, text: $text)
+                        .textInputAutocapitalization(.never)
                 } else {
                     SecureField(placeholder, text: $text)
+                        .textInputAutocapitalization(.never)
                 }
             }
             Button { showPassword.toggle() } label: {

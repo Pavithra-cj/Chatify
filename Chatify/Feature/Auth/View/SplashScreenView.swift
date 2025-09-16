@@ -18,6 +18,8 @@ struct SplashScreenView: View {
     @State private var logoScale: CGFloat = 1.0
     @State private var textOpacity: Double = 1.0
     
+    @EnvironmentObject private var coordinator: AppCoordinator
+    
     var body: some View {
         Group{
             if isActive {
@@ -27,7 +29,7 @@ struct SplashScreenView: View {
                         gotoLogin = false
                     })
                 } else {
-                    MainMessageView()
+                    HomeView()
                 }
             } else {
                 splashContent
@@ -36,6 +38,7 @@ struct SplashScreenView: View {
         .onAppear{
             checkAuthenticationStatus()
             runSpalshAnimation()
+            setupNotifications()
         }
     }
     
@@ -92,6 +95,17 @@ struct SplashScreenView: View {
         }
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+            isActive = true
+        }
+    }
+    
+    private func setupNotifications() {
+        NotificationCenter.default.addObserver(
+            forName: NSNotification.Name("UserDidSignOut"),
+            object: nil,
+            queue: .main
+        ) { _ in
+            gotoLogin = true
             isActive = true
         }
     }

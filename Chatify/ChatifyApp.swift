@@ -20,15 +20,13 @@ class AppDelegate: NSObject, UIApplicationDelegate {
 @main
 struct ChatifyApp: App {
     let persistenceController = PersistenceController.shared
-    
+    @StateObject private var coordinator = AppCoordinator.shared
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
 
     var body: some Scene {
         WindowGroup {
-//            ContentView()
-//                .environment(\.managedObjectContext, persistenceController.container.viewContext)
-            
             SplashScreenView()
+                .environmentObject(coordinator)
         }
     }
 }
