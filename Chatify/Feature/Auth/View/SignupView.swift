@@ -12,9 +12,7 @@ import FirebaseStorage
 import FirebaseFirestore
 
 struct SignupView: View {
-    
     @Environment(\.dismiss) private var dismiss
-    
     @StateObject private var viewModel: SignupViewModel
     
     init(alreadyLoggedIn: @escaping () -> ()) {
@@ -22,118 +20,101 @@ struct SignupView: View {
     }
     
     var body: some View {
-        NavigationStack{
-            ZStack{
+        NavigationStack {
+            ZStack {
                 BackgroundView()
                 
                 ScrollView {
-                    VStack(spacing: 20){
-                        
+                    VStack(spacing: 20) {
                         LogoView()
                         
-                        VStack(spacing: 20) {
-                            // Header
-                            Spacer()
-                            VStack(alignment: .leading, spacing: 1) {
-                                Text("Sign Up")
-                                    .font(.largeTitle)
-                                    .fontWeight(.bold)
-                                    .foregroundColor(.primary)
-                                
-                                Text("Create your account to get started")
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            
-                            // Profile Image Picker
-                            ProfileImagePicker(viewModel: viewModel)
-                            
-                            // Form Fields
-                            VStack(spacing: 15){
-                                MyTextField("Username", text: $viewModel.username)
-                                MyTextField("Full Name", text: $viewModel.name)
-                                MyTextField("Email", text: $viewModel.email, keyboard: .emailAddress, autocapitalization: .never)
-                                
-                                PasswordField(
-                                    placeholder: "Password",
-                                    text: $viewModel.password,
-                                    showPassword: $viewModel.showPassword
-                                )
-                                PasswordField(
-                                    placeholder: "Confirm Password",
-                                    text: $viewModel.confirmPassword,
-                                    showPassword: $viewModel.showConfirmPassword
-                                )
-                            }
-                            
-                            // Sign Up Button
-                            Button {
-                                viewModel.handleSignUp()
-                            } label: {
-                                HStack{
-                                    Spacer()
+                        AuthFormContainer {
+                            VStack(spacing: 20) {
+                                VStack(alignment: .leading, spacing: 1) {
+                                    Text("Sign Up")
+                                        .font(.largeTitle)
+                                        .fontWeight(.bold)
+                                        .foregroundColor(.primary)
+                                        .padding(.top, 10)
                                     
-                                    if viewModel.isLoading {
-                                        ProgressView()
-                                            .scaleEffect(0.8)
-                                            .foregroundColor(.white)
-                                        
-                                        Text("Creating Account...")
-                                            .foregroundColor(.white)
-                                            .padding(.vertical, 10)
-                                            .font(
-                                                .system(
-                                                    size: 14,
-                                                    weight: .semibold
-                                                )
-                                            )
-                                    } else {
-                                        Text("Sign Up")
-                                            .foregroundColor(.white)
-                                            .padding(.vertical, 10)
-                                            .font(
-                                                .system(
-                                                    size: 14,
-                                                    weight: .semibold
-                                                )
-                                            )
+                                    Text("Create your account to get started")
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                }
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                
+                                ProfileImagePicker(viewModel: viewModel)
+                                
+                                VStack(spacing: 15) {
+                                    AuthTextField(placeholder: "Username", text: $viewModel.username)
+                                    AuthTextField(placeholder: "Full Name", text: $viewModel.name)
+                                    AuthTextField(
+                                        placeholder: "Email",
+                                        text: $viewModel.email,
+                                        keyboard: .emailAddress,
+                                        autocapitalization: .never
+                                    )
+                                    
+                                    AuthSecureField(
+                                        placeholder: "Password",
+                                        text: $viewModel.password,
+                                        showPassword: $viewModel.showPassword
+                                    )
+                                    AuthSecureField(
+                                        placeholder: "Confirm Password",
+                                        text: $viewModel.confirmPassword,
+                                        showPassword: $viewModel.showConfirmPassword
+                                    )
+                                }
+                                
+                                Button {
+                                    viewModel.handleSignUp()
+                                } label: {
+                                    HStack {
+                                        Spacer()
+                                        if viewModel.isLoading {
+                                            ProgressView()
+                                                .scaleEffect(0.8)
+                                                .tint(.white)
+                                            Text("Creating Account...")
+                                                .foregroundColor(.white)
+                                                .padding(.vertical, 10)
+                                                .font(.system(size: 14, weight: .semibold))
+                                        } else {
+                                            Text("Sign Up")
+                                                .foregroundColor(.white)
+                                                .padding(.vertical, 10)
+                                                .font(.system(size: 14, weight: .semibold))
+                                        }
+                                        Spacer()
                                     }
-                                    
-                                    Spacer()
+                                    .background(Color.blue)
+                                    .cornerRadius(10)
                                 }
-                                .background(Color.blue)
-                                .cornerRadius(10)
-                            }
-                            .disabled(
-                                viewModel.email.isEmpty || viewModel.password.isEmpty ||
-                                viewModel.confirmPassword.isEmpty || viewModel.name.isEmpty ||
-                                viewModel.username.isEmpty || viewModel.isLoading
-                            )
-                            .opacity(
-                                viewModel.email.isEmpty || viewModel.password.isEmpty ||
-                                viewModel.confirmPassword.isEmpty || viewModel.name.isEmpty ||
-                                viewModel.username.isEmpty || viewModel.isLoading ? 0.6 : 1.0
-                            )
-                            
-                            // Back to Login
-                            HStack{
-                                Text("Already have an account?")
-                                    .foregroundColor(.secondary)
+                                .disabled(
+                                    viewModel.email.isEmpty || viewModel.password.isEmpty ||
+                                    viewModel.confirmPassword.isEmpty || viewModel.name.isEmpty ||
+                                    viewModel.username.isEmpty || viewModel.isLoading
+                                )
+                                .opacity(
+                                    viewModel.email.isEmpty || viewModel.password.isEmpty ||
+                                    viewModel.confirmPassword.isEmpty || viewModel.name.isEmpty ||
+                                    viewModel.username.isEmpty || viewModel.isLoading ? 0.6 : 1.0
+                                )
                                 
-                                Button("Sign In"){
-                                    dismiss()
+                                HStack {
+                                    Text("Already have an account?")
+                                        .foregroundColor(.secondary)
+                                    Button("Sign In") {
+                                        dismiss()
+                                    }
+                                    .foregroundColor(.blue)
                                 }
-                                .foregroundColor(.blue)
+                                .font(.subheadline)
+                                
+                                Spacer()
                             }
-                            .font(.subheadline)
-                            
-                            Spacer()
                         }
-                        .padding(.horizontal, 20)
-                        .background(Color.white)
-                        .cornerRadius(20)
-                        .padding(20)
                     }
                 }
             }
@@ -206,7 +187,7 @@ struct ProfileImagePicker: View {
                         .font(.system(size: 40))
                         .foregroundColor(.gray)
                         .frame(width: 100, height: 100)
-                        .background(Color.gray.opacity(0.1))
+                        .background(Color(uiColor: .systemBackground))
                         .clipShape(Circle())
                 }
             }
@@ -219,58 +200,6 @@ struct ProfileImagePicker: View {
                     .offset(x: 35, y: 35)
             )
         }
-    }
-}
-
-struct MyTextField: View {
-    var placeholder: String
-    @Binding var text: String
-    var keyboard: UIKeyboardType = .default
-    var autocapitalization: TextInputAutocapitalization = .sentences
-    
-    init(_ placeholder: String, text: Binding<String>, keyboard: UIKeyboardType = .default, autocapitalization: TextInputAutocapitalization = .sentences) {
-        self.placeholder = placeholder
-        self._text = text
-        self.keyboard = keyboard
-        self.autocapitalization = autocapitalization
-    }
-    
-    var body: some View {
-        TextField(placeholder, text: $text)
-            .keyboardType(keyboard)
-            .textInputAutocapitalization(autocapitalization)
-            .padding()
-            .background(Color.white)
-            .cornerRadius(8)
-            .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.gray, lineWidth: 1))
-    }
-}
-
-struct PasswordField: View {
-    var placeholder: String
-    @Binding var text: String
-    @Binding var showPassword: Bool
-    
-    var body: some View {
-        HStack {
-            Group {
-                if showPassword {
-                    TextField(placeholder, text: $text)
-                        .textInputAutocapitalization(.never)
-                } else {
-                    SecureField(placeholder, text: $text)
-                        .textInputAutocapitalization(.never)
-                }
-            }
-            Button { showPassword.toggle() } label: {
-                Image(systemName: showPassword ? "eye" : "eye.slash")
-                    .foregroundColor(.secondary)
-            }
-        }
-        .padding()
-        .background(Color.white)
-        .cornerRadius(8)
-        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.gray, lineWidth: 1))
     }
 }
 

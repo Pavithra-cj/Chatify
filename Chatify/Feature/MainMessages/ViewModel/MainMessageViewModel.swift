@@ -18,7 +18,10 @@ class MainMessagesViewModel: ObservableObject{
     @Published var isUserCurrentlyLoggedOut: Bool = false
     
     @Published var recentMessages = [RecentMessage]()
+    @Published var friendRequests = [FriendRequest]()
     private var listener: ListenerRegistration?
+    private var friendRequestListener: ListenerRegistration?
+    private let db = Firestore.firestore()
     
     init() {
         
@@ -29,6 +32,8 @@ class MainMessagesViewModel: ObservableObject{
         fetchCurrentUser()
         
         fetchRecentMessages()
+        
+        listenForFriendRequests()
     }
     
     deinit {
@@ -108,6 +113,64 @@ class MainMessagesViewModel: ObservableObject{
             isUserCurrentlyLoggedOut.toggle()
         } catch {
             print("Error signing out: \(error)")
+        }
+    }
+    
+    func listenForFriendRequests() {
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        
+        friendRequestListener = db.collection("friend_requests")
+            .whereField("toId", isEqualTo: uid)
+            .whereField("status", isEqualTo: "pending")
+            .addSnapshotListener { [weak self] snapshot, error in
+                if let error = error {
+                    self?.errorMessage = error.localizedDescription
+                    return
+                }
+                
+                guard let documents = snapshot?.documents else { return }
+                self?.friendRequests = documents.compactMap { document -> FriendRequest? in
+                    var request = try? document.data(as: FriendRequest.self)
+                    request?.id = document.documentID
+                    return request
+                }
+            }
+    }
+    
+    func acceptFriendRequest(_ request: FriendRequest) {
+        let batch = db.batch()
+        
+        // Update request status
+        let requestRef = db.collection("friend_requests").document(request.id)
+        batch.updateData(["status": "accepted"], forDocument: requestRef)
+        
+        // Add to current user's friends
+        let currentUserRef = db.collection("user").document(request.toId)
+        batch.updateData([
+            "friends": FieldValue.arrayUnion([request.fromId])
+        ], forDocument: currentUserRef)
+        
+        // Add to sender's friends
+        let senderRef = db.collection("user").document(request.fromId)
+        batch.updateData([
+            "friends": FieldValue.arrayUnion([request.toId])
+        ], forDocument: senderRef)
+        
+        batch.commit { [weak self] error in
+            if let error = error {
+                self?.errorMessage = error.localizedDescription
+            }
+        }
+    }
+    
+    func rejectFriendRequest(_ request: FriendRequest) {
+        let requestRef = db.collection("friend_requests").document(request.id)
+        requestRef.updateData([
+            "status": "rejected"
+        ]) { [weak self] error in
+            if let error = error {
+                self?.errorMessage = error.localizedDescription
+            }
         }
     }
     

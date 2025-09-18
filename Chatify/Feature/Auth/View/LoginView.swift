@@ -62,124 +62,84 @@ struct LoginView: View {
                         }
                         .padding(.top, 40)
                         
-                        VStack (spacing: 20) {
-                            Spacer()
-                            VStack (alignment: .leading, spacing: 1) {
-                                Text("Sign In")
-                                    .font(.largeTitle)
-                                    .fontWeight(.bold)
-                                    .foregroundColor(.primary)
-                                
-                                Text("Please sign in to continue")
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            
-                            TextField("Email", text: $viewModel.email)
-                                .keyboardType(.emailAddress)
-                                .textInputAutocapitalization(.never)
-                                .padding()
-                                .background(Color.white)
-                                .cornerRadius(8)
-                                .overlay(RoundedRectangle(cornerRadius: 8)
-                                    .stroke(Color.gray, lineWidth: 1))
-                            
-                            HStack{
-                                Group{
-                                    if viewModel.showPassword {
-                                        TextField("Password", text: $viewModel.password)
-                                            .textInputAutocapitalization(.never)
-                                    } else {
-                                        SecureField(
-                                            "Password",
-                                            text: $viewModel.password
-                                        )
-                                        .textInputAutocapitalization(.never)
-                                    }
-                                }
-                                
-                                Button(action: { viewModel.showPassword.toggle()}) {
-                                    Image(systemName: viewModel.showPassword ? "eye" : "eye.slash")
+                        AuthFormContainer {
+                            VStack(spacing: 20) {
+                                VStack(alignment: .leading, spacing: 1) {
+                                    Text("Sign In")
+                                        .font(.largeTitle)
+                                        .fontWeight(.bold)
+                                        .foregroundColor(.primary)
+                                        .padding(.top, 10)
+                                    
+                                    Text("Please sign in to continue")
+                                        .font(.subheadline)
                                         .foregroundColor(.secondary)
                                 }
-                            }
-                            .padding()
-                            .background(Color.white)
-                            .cornerRadius(8)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(Color.gray, lineWidth: 1))
-                            
-                            HStack{
-                                Spacer()
+                                .frame(maxWidth: .infinity, alignment: .leading)
                                 
-                                Button("Forgot Password?") {
-                                    viewModel.showForgotPassword = true
+                                AuthTextField(
+                                    placeholder: "Email",
+                                    text: $viewModel.email,
+                                    keyboard: .emailAddress,
+                                    autocapitalization: .never
+                                )
+                                
+                                AuthSecureField(
+                                    placeholder: "Password",
+                                    text: $viewModel.password,
+                                    showPassword: $viewModel.showPassword
+                                )
+                                
+                                HStack {
+                                    Spacer()
+                                    Button("Forgot Password?") {
+                                        viewModel.showForgotPassword = true
+                                    }
+                                    .font(.subheadline)
+                                    .foregroundColor(.blue)
+                                }
+                                
+                                Button {
+                                    viewModel.handleLogin()
+                                } label: {
+                                    HStack {
+                                        Spacer()
+                                        if viewModel.isLoading {
+                                            ProgressView()
+                                                .scaleEffect(0.8)
+                                                .tint(.white)
+                                            Text("Signing In...")
+                                                .foregroundColor(.white)
+                                                .padding(.vertical, 10)
+                                                .font(.system(size: 14, weight: .semibold))
+                                        } else {
+                                            Text("Login")
+                                                .foregroundColor(.white)
+                                                .padding(.vertical, 10)
+                                                .font(.system(size: 14, weight: .semibold))
+                                        }
+                                        Spacer()
+                                    }
+                                    .background(Color.blue)
+                                    .cornerRadius(10)
+                                }
+                                .disabled(viewModel.email.isEmpty || viewModel.password.isEmpty || viewModel.isLoading)
+                                .opacity(viewModel.email.isEmpty || viewModel.password.isEmpty || viewModel.isLoading ? 0.6 : 1.0)
+                                
+                                HStack {
+                                    Text("Don't have an account?")
+                                        .foregroundColor(.secondary)
+                                    Button("Sign Up") {
+                                        viewModel.showSignUp = true
+                                    }
+                                    .foregroundColor(.blue)
                                 }
                                 .font(.subheadline)
-                                .foregroundColor(.blue)
-                            }
-                            
-//                            Spacer()
-                            
-                            Button {
-                                viewModel.handleLogin()
-                            } label: {
-                                HStack{
-                                    Spacer()
-                                    
-                                    if viewModel.isLoading {
-                                        ProgressView()
-                                            .scaleEffect(0.8)
-                                            .foregroundColor(.white)
-                                        
-                                        Text("Signing In...")
-                                            .foregroundColor(.white)
-                                            .padding(.vertical, 10)
-                                            .font(
-                                                .system(
-                                                    size: 14,
-                                                    weight: .semibold
-                                                )
-                                            )
-                                    } else {
-                                        Text("Login")
-                                            .foregroundColor(.white)
-                                            .padding(.vertical, 10)
-                                            .font(
-                                                .system(
-                                                    size: 14,
-                                                    weight: .semibold
-                                                )
-                                            )
-                                    }
-                                    
-                                    Spacer()
-                                }
-                                .background(Color.blue)
-                                .cornerRadius(10)
-                            }
-                            .disabled(
-                                viewModel.email.isEmpty || viewModel.password.isEmpty || viewModel.isLoading
-                            )
-                            .opacity(viewModel.email.isEmpty || viewModel.password.isEmpty || viewModel.isLoading ? 0.6 : 1.0)
-                            
-                            HStack{
-                                Text("Don't have an account?")
-                                    .foregroundColor(.secondary)
                                 
-                                Button("Sign Up"){
-                                    viewModel.showSignUp = true
-                                }
-                                .foregroundColor(.blue)
+                                Spacer()
                             }
-                            .font(.subheadline)
-                            
-                            Spacer()
                         }
                         .padding(.horizontal, 20)
-                        .background(Color.white)
                         .cornerRadius(20)
                         .padding(20)
                     }

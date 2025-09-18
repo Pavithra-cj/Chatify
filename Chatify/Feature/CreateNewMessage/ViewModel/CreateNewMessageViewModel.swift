@@ -38,14 +38,11 @@ class CreateNewMessageViewModel: ObservableObject {
                 }
                 
                 guard let document = documentSnapshot,
-                      document.exists,
-                      let data = document.data() else {
+                      let data = document.data(),
+                      let friendIds = data["friends"] as? [String] else {
                     self.users = []
                     return
                 }
-                
-                // Get the friends array, if it doesn't exist, use empty array
-                let friendIds = data["friends"] as? [String] ?? []
                 
                 Task {
                     await self.fetchFriendsData(friendIds: friendIds)
@@ -71,7 +68,7 @@ class CreateNewMessageViewModel: ObservableObject {
                             username: data["username"] as? String ?? "",
                             email: data["email"] as? String ?? "",
                             name: data["name"] as? String ?? "",
-                            profileImageUrl: data["profileImageUrl"] as? String
+                            profileImageUrl: data["profileImage"] as? String // Changed from profileImageUrl to profileImage
                         )
                     }
                 }
@@ -86,7 +83,6 @@ class CreateNewMessageViewModel: ObservableObject {
             
             // Sort friends by name for consistent display
             self.users = friends.sorted { $0.name < $1.name }
-            self.errorMessage = "" // Clear any previous errors
             
         } catch {
             self.errorMessage = "Error fetching friends: \(error.localizedDescription)"
@@ -94,6 +90,25 @@ class CreateNewMessageViewModel: ObservableObject {
     }
     
     func refreshFriends() {
-        setupFriendsListener()
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        
+        Task {
+            do {
+                let snapshot = try await Firestore.firestore()
+                    .collection("user")
+                    .document(uid)
+                    .getDocument()
+                
+                guard let data = snapshot.data(),
+                      let friendIds = data["friends"] as? [String] else {
+                    self.users = []
+                    return
+                }
+                
+                await fetchFriendsData(friendIds: friendIds)
+            } catch {
+                self.errorMessage = "Error refreshing friends: \(error.localizedDescription)"
+            }
+        }
     }
 }

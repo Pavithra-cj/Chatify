@@ -19,6 +19,8 @@ class QRCodeScannerViewModel: ObservableObject {
     @Published var showAlert: Bool = false
     @Published var alertMessage: String = ""
     
+    private let db = Firestore.firestore()
+    
     func onCodeScanned(_ code: String) {
         let components = code.split(separator: "_")
         guard components.count >= 1 else { return }
@@ -26,13 +28,12 @@ class QRCodeScannerViewModel: ObservableObject {
         let friendId = String(components[0])
         Task {
             do {
-                try await addBidirectionalFriendship(friendId: friendId)
-                alertMessage = "Friend added successfully!"
+                try await sendFriendRequest(toUserId: friendId)
+                alertMessage = "Friend request sent successfully!"
                 showAlert = true
                 isScanning = false
-                NotificationCenter.default.post(name: NSNotification.Name("RefreshFriendsList"), object: nil)
             } catch {
-                alertMessage = "Failed to add friend: \(error.localizedDescription)"
+                alertMessage = "Failed to send friend request: \(error.localizedDescription)"
                 showAlert = true
                 isScanning = false
             }
@@ -45,49 +46,30 @@ class QRCodeScannerViewModel: ObservableObject {
         isScanning = true
     }
     
-    private func addBidirectionalFriendship(friendId: String) async throws {
+    private func sendFriendRequest(toUserId: String) async throws {
         guard let currentUserId = Auth.auth().currentUser?.uid else {
             throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Not logged in"])
         }
         
-        guard currentUserId != friendId else {
-            throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Cannot add yourself as a friend"])
+        // Check if friend request already exists
+        let requests = try await db.collection("friend_requests")
+            .whereField("fromId", isEqualTo: currentUserId)
+            .whereField("toId", isEqualTo: toUserId)
+            .whereField("status", isEqualTo: "pending")
+            .getDocuments()
+        
+        if !requests.documents.isEmpty {
+            throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Friend request already sent"])
         }
         
-        let db = Firestore.firestore()
+        // Create new friend request
+        let friendRequest = [
+            "fromId": currentUserId,
+            "toId": toUserId,
+            "timestamp": Timestamp(),
+            "status": "pending"
+        ] as [String: Any]
         
-        // Get both users' data
-        let userSnapshot = try await db.collection("user").document(currentUserId).getDocument()
-        let friendSnapshot = try await db.collection("user").document(friendId).getDocument()
-        
-        guard userSnapshot.exists && friendSnapshot.exists,
-              let userData = userSnapshot.data(),
-              let friendData = friendSnapshot.data() else {
-            throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "User data not found"])
-        }
-        
-        // Get existing friend lists or create empty arrays
-        var currentUserFriends = (userData["friends"] as? [String]) ?? []
-        var friendUserFriends = (friendData["friends"] as? [String]) ?? []
-        
-        // Add each user to the other's friend list if not already present
-        if !currentUserFriends.contains(friendId) {
-            currentUserFriends.append(friendId)
-        }
-        
-        if !friendUserFriends.contains(currentUserId) {
-            friendUserFriends.append(currentUserId)
-        }
-        
-        // Update both users' documents in a batch
-        let batch = db.batch()
-        
-        let currentUserRef = db.collection("user").document(currentUserId)
-        let friendUserRef = db.collection("user").document(friendId)
-        
-        batch.setData(["friends": currentUserFriends], forDocument: currentUserRef, merge: true)
-        batch.setData(["friends": friendUserFriends], forDocument: friendUserRef, merge: true)
-        
-        try await batch.commit()
+        try await db.collection("friend_requests").addDocument(data: friendRequest)
     }
 }
