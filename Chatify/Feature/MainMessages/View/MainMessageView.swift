@@ -22,6 +22,7 @@ struct MainMessageView: View {
     
     @Binding var showQRCode: Bool
     @Binding var showScanner: Bool
+    @Binding var hideTabBar: Bool
     
     @ObservedObject private var scannerViewModel = QRCodeScannerViewModel()
     
@@ -190,38 +191,21 @@ struct MainMessageView: View {
         }
     }
     
-    private var newMessageButton: some View{
+    private var newMessageButton: some View {
         Button {
             shouldShowNewMessageScreen.toggle()
+        } label: {
+            Image(systemName: "square.and.pencil")
+                .font(.system(size: 24, weight: .bold))
+                .foregroundColor(.white)
+                .frame(width: 60, height: 60)
+                .background(
+                    Circle()
+                        .fill(Color.blue)
+                        .shadow(color: .black.opacity(0.3), radius: 8, x: 0, y: 4)
+                )
         }
-        label: {
-            HStack{
-                Spacer()
-                Text("+ New Message")
-                    .font(.system(size: 16, weight: .bold))
-                Spacer()
-            }
-            .foregroundColor(.white)
-            .padding(.vertical)
-            .background(Color.blue)
-            .cornerRadius(32)
-            .padding(.horizontal)
-            .shadow(radius: 15)
-        }
-        .fullScreenCover(isPresented: $shouldShowNewMessageScreen, onDismiss: nil){
-            CreateNewMessageView(didSelectUser: { friend in
-                print(friend.email)
-                self.shouldNavigateToChatLogView.toggle()
-                // Convert Friend to ChatUser
-                self.chatUser = ChatUser(data: [
-                    "uid": friend.userId,
-                    "email": friend.email,
-                    "username": friend.username,
-                    "profileImage": friend.profileImageUrl ?? "",
-                    "name": friend.name
-                ])
-            })
-        }
+        .padding([.trailing, .bottom], 20)
     }
     
     private var friendRequestsSection: some View {
@@ -249,28 +233,37 @@ struct MainMessageView: View {
     }
     
     var body: some View {
-        NavigationStack {
+        ZStack(alignment: .bottomTrailing) {
             VStack {
-                //Custom Navigation Bar
                 customNavBar
                 
-                // Friend Requests Section
                 if !vm.friendRequests.isEmpty {
                     friendRequestsSection
                 }
                 
-                //Messages View
                 messagesView
             }
-            .overlay(
-                newMessageButton, alignment: .bottom
-            )
-            .navigationBarHidden(true)
-            .navigationDestination(isPresented: $shouldNavigateToChatLogView) {
-                if let chatUser = chatUser {
-                    ChatLogView(chatUser: chatUser)
-                }
-            }
+            
+            newMessageButton
+        }
+        .onChange(of: shouldNavigateToChatLogView) { oldValue, newValue in
+            hideTabBar = newValue
+        }
+        .fullScreenCover(isPresented: $shouldNavigateToChatLogView) {
+            ChatLogView(chatUser: chatUser)
+        }
+        .fullScreenCover(isPresented: $shouldShowNewMessageScreen, onDismiss: nil) {
+            CreateNewMessageView(didSelectUser: { friend in
+                print(friend.email)
+                self.shouldNavigateToChatLogView.toggle()
+                self.chatUser = ChatUser(data: [
+                    "uid": friend.userId,
+                    "email": friend.email,
+                    "username": friend.username,
+                    "profileImage": friend.profileImageUrl ?? "",
+                    "name": friend.name
+                ])
+            })
         }
     }
     
@@ -333,5 +326,5 @@ struct FriendRequestCard: View {
 }
 
 #Preview {
-    MainMessageView(showQRCode: .constant(false), showScanner: .constant(false))
+    MainMessageView(showQRCode: .constant(false), showScanner: .constant(false), hideTabBar: .constant(false))
 }

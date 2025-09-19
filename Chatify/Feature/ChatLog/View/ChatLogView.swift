@@ -17,6 +17,7 @@ struct ChatLogView: View {
     @ObservedObject var vm: ChatLogViewModel
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.dismiss) var dismiss
+    @Environment(\.presentationMode) var presentationMode
     
     @State private var showMediaPicker = false
     @State private var showImagePicker = false
@@ -38,24 +39,18 @@ struct ChatLogView: View {
     }
     
     var body: some View {
-        VStack{
-            
+        VStack {
             chatHeader
-            
             messageListView
-            
             inputBarView
-            
         }
-//        .navigationTitle(chatUser?.name ?? "")
-//        .navigationBarTitleDisplayMode(.inline)
-        .navigationBarHidden(true)
+        .ignoresSafeArea(.keyboard)
     }
     
     private var chatHeader: some View {
         HStack(spacing: 16) {
             Button(action: {
-                dismiss()
+                presentationMode.wrappedValue.dismiss()
             }) {
                 Image(systemName: "chevron.left")
                     .font(.system(size: 24, weight: .semibold))
