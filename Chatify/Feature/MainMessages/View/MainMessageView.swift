@@ -18,11 +18,11 @@ struct MainMessageView: View {
     @State var shouldShowQRCodeScanner = false
     @State var shouldShowDisplayQRCode = false
     @State var chatUser: ChatUser?
-    @State var shouldNavigateToChatLogView = false
+    @State private var shouldShowFriends = false
     
     @Binding var showQRCode: Bool
     @Binding var showScanner: Bool
-    @Binding var hideTabBar: Bool
+    let onChatSelected: (ChatUser) -> Void
     
     @ObservedObject private var scannerViewModel = QRCodeScannerViewModel()
     
@@ -63,8 +63,8 @@ struct MainMessageView: View {
             Spacer()
             
             HStack(spacing: 16) {
-                NavigationLink {
-                    FriendsView()
+                Button {
+                    shouldShowFriends = true
                 } label: {
                     Image(systemName: "person.2")
                         .font(.system(size: 24, weight: .bold))
@@ -123,6 +123,13 @@ struct MainMessageView: View {
                 self.vm.fetchCurrentUser()
             })
         }
+        .fullScreenCover(isPresented: $shouldShowFriends) {
+            NavigationStack {
+                FriendsView()
+                    .toolbar { ToolbarItem(placement: .topBarLeading) { Button("Close") { shouldShowFriends = false } } }
+                    .navigationBarTitleDisplayMode(.inline)
+            }
+        }
     }
     
     private var messagesView: some View{
@@ -132,7 +139,6 @@ struct MainMessageView: View {
                     Button(action: {
                         let currentUserId = Auth.auth().currentUser?.uid ?? ""
                         let chatUserId = recentMessage.fromId == currentUserId ? recentMessage.toId : recentMessage.fromId
-                        
                         let chatUserData: [String: Any] = [
                             "uid": chatUserId,
                             "name": recentMessage.displayName,
@@ -140,10 +146,9 @@ struct MainMessageView: View {
                             "email": "",
                             "profileImage": recentMessage.profileImageUrl
                         ]
-                        
-                        self.chatUser = ChatUser(data: chatUserData)
-                        self.shouldNavigateToChatLogView = true
-                        print("Go to chat log with user: \(self.chatUser?.uid ?? "" )")
+                        let user = ChatUser(data: chatUserData)
+                        self.chatUser = user
+                        onChatSelected(user)
                     }) {
                         HStack(spacing: 16){
                             if let imageData = Data(base64Encoded: recentMessage.profileImageUrl),
@@ -246,23 +251,18 @@ struct MainMessageView: View {
             
             newMessageButton
         }
-        .onChange(of: shouldNavigateToChatLogView) { oldValue, newValue in
-            hideTabBar = newValue
-        }
-        .fullScreenCover(isPresented: $shouldNavigateToChatLogView) {
-            ChatLogView(chatUser: chatUser)
-        }
         .fullScreenCover(isPresented: $shouldShowNewMessageScreen, onDismiss: nil) {
             CreateNewMessageView(didSelectUser: { friend in
-                print(friend.email)
-                self.shouldNavigateToChatLogView.toggle()
-                self.chatUser = ChatUser(data: [
+                let user = ChatUser(data: [
                     "uid": friend.userId,
                     "email": friend.email,
                     "username": friend.username,
                     "profileImage": friend.profileImageUrl ?? "",
                     "name": friend.name
                 ])
+                self.chatUser = user
+                onChatSelected(user)
+                self.shouldShowNewMessageScreen = false
             })
         }
     }
@@ -326,5 +326,5 @@ struct FriendRequestCard: View {
 }
 
 #Preview {
-    MainMessageView(showQRCode: .constant(false), showScanner: .constant(false), hideTabBar: .constant(false))
+    MainMessageView(showQRCode: .constant(false), showScanner: .constant(false), onChatSelected: { _ in })
 }

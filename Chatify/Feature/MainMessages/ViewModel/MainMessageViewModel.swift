@@ -38,6 +38,7 @@ class MainMessagesViewModel: ObservableObject{
     
     deinit {
         listener?.remove()
+        friendRequestListener?.remove()
     }
     
     private func fetchRecentMessages(){
@@ -82,28 +83,30 @@ class MainMessagesViewModel: ObservableObject{
     func fetchCurrentUser(){
         guard let uid = Auth.auth().currentUser?.uid
         else {
-            self.errorMessage = "Could not find firebase UID"
+            DispatchQueue.main.async {
+                self.errorMessage = "Could not find firebase UID"
+            }
             return
         }
         
-        Firestore.firestore().collection("user").document(uid).getDocument{
-            snapshot,
-            error in
-            if let error = error {
-                self.errorMessage = "Failed to fetch current user: \(error)"
-                print("Failed to fetch current user: \(error)")
-                return
+        Firestore.firestore().collection("user").document(uid).getDocument{ [weak self] snapshot, error in
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+                
+                if let error = error {
+                    self.errorMessage = "Failed to fetch current user: \(error)"
+                    print("Failed to fetch current user: \(error)")
+                    return
+                }
+                
+                guard let data = snapshot?.data()
+                else {
+                    self.errorMessage = "No data found"
+                    return
+                }
+                
+                self.chatUser = .init(data: data)
             }
-            
-            guard let data = snapshot?.data()
-            else {
-                self.errorMessage = "No data found"
-                return
-            }
-            
-            //            self.errorMessage = "Data: \(data.description)"
-            
-            self.chatUser = .init(data: data)
         }
     }
     

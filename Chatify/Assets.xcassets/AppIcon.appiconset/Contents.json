@@ -1,6 +1,7 @@
 {
   "images" : [
     {
+      "filename" : "Chatify_AppIcon_Light_1024.png",
       "idiom" : "universal",
       "platform" : "ios",
       "size" : "1024x1024"
@@ -12,6 +13,7 @@
           "value" : "dark"
         }
       ],
+      "filename" : "Chatify_AppIcon_Dark_1024.png",
       "idiom" : "universal",
       "platform" : "ios",
       "size" : "1024x1024"
