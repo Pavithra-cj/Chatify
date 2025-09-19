@@ -19,32 +19,26 @@ struct HomeView: View {
     var body: some View {
         ZStack {
             TabView(selection: $selectedTab) {
-                NavigationStack {
-                    MainMessageView(showQRCode: $showQRCode, showScanner: $showScanner, hideTabBar: $hideTabBar)
-                }
-                .tabItem {
-                    Image(systemName: "message.fill")
-                    Text("Chats")
-                }
-                .tag(0)
+                MainMessageView(showQRCode: $showQRCode, showScanner: $showScanner, hideTabBar: $hideTabBar)
+                    .tabItem {
+                        Image(systemName: "message.fill")
+                        Text("Chats")
+                    }
+                    .tag(0)
                 
-                NavigationStack {
-                    StatusView()
-                }
-                .tabItem {
-                    Image(systemName: "circle.dashed")
-                    Text("Status")
-                }
-                .tag(1)
+                StatusView()
+                    .tabItem {
+                        Image(systemName: "circle.dashed")
+                        Text("Status")
+                    }
+                    .tag(1)
                 
-                NavigationStack {
-                    SettingsView()
-                }
-                .tabItem {
-                    Image(systemName: "gear")
-                    Text("Settings")
-                }
-                .tag(2)
+                SettingsView()
+                    .tabItem {
+                        Image(systemName: "gear")
+                        Text("Settings")
+                    }
+                    .tag(2)
             }
             .opacity(hideTabBar ? 0 : 1)
             
