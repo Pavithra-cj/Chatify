@@ -421,6 +421,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Camera access is required to scan QR codes";
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "We need to use Face ID to securely authenticate you when accessing the app.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Please allow access to share your location in chats";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Please allow access to select photos from your library";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -452,6 +453,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Camera access is required to scan QR codes";
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "We need to use Face ID to securely authenticate you when accessing the app.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Please allow access to share your location in chats";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Please allow access to select photos from your library";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;

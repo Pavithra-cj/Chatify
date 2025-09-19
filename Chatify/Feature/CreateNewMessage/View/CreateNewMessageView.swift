@@ -6,109 +6,100 @@
 //
 
 import SwiftUI
+import SDWebImageSwiftUI
 
-struct FriendRowView: View {
-    let friend: Friend
-    let onSelect: (ChatUser) -> Void
+struct CreateNewMessageView: View {
+    @Environment(\.dismiss) var dismiss
+    @StateObject private var viewModel = CreateNewMessageViewModel()
+    @State private var isRefreshing = false
+    let didSelectUser: (Friend) -> Void
     
     var body: some View {
-        Button {
-            let chatUser = ChatUser(data: [
-                "uid": friend.userId,
-                "email": friend.email,
-                "profileImageUrl": friend.profileImageUrl ?? ""
-            ])
-            onSelect(chatUser)
-        } label: {
-            HStack(spacing: 16) {
-                ProfileImageView(imageUrl: friend.profileImageUrl)
-                UserInfoView(name: friend.name, email: friend.email)
-                Spacer()
+        NavigationView {
+            List {
+                if viewModel.errorMessage.isEmpty {
+                    ForEach(viewModel.users) { user in
+                        Button {
+                            dismiss()
+                            didSelectUser(user)
+                        } label: {
+                            FriendRowView(friend: user)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                } else {
+                    Text(viewModel.errorMessage)
+                        .foregroundColor(.red)
+                        .padding()
+                }
             }
-            .padding(.horizontal)
+            .listStyle(PlainListStyle())
+            .refreshable {
+                viewModel.refreshFriends()
+            }
+            .overlay(Group {
+                if viewModel.users.isEmpty && viewModel.errorMessage.isEmpty {
+                    ContentUnavailableView(
+                        "No Friends Yet",
+                        systemImage: "person.2",
+                        description: Text("Scan someone's QR code to add them as a friend")
+                    )
+                }
+            })
+            .navigationTitle("New Message")
+            .navigationBarTitleDisplayMode(.inline)
+            .navigationBarItems(
+                leading: Button("Cancel") {
+                    dismiss()
+                },
+                trailing: NavigationLink(destination: ScannerScreen()) {
+                    Image(systemName: "qrcode.viewfinder")
+                }
+            )
+            .onAppear {
+                viewModel.refreshFriends()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("RefreshFriendsList"))) { _ in
+                viewModel.refreshFriends()
+            }
         }
-        Divider()
-            .padding(.vertical, 8)
     }
 }
 
-struct ProfileImageView: View {
-    let imageUrl: String?
+struct FriendRowView: View {
+    let friend: Friend
     
     var body: some View {
-        if let profileUrl = imageUrl,
-           let url = URL(string: profileUrl) {
-            AsyncImage(url: url) { image in
-                image
+        HStack(spacing: 16) {
+            if let base64String = friend.profileImageUrl,
+               let imageData = Data(base64Encoded: base64String),
+               let uiImage = UIImage(data: imageData) {
+                Image(uiImage: uiImage)
                     .resizable()
                     .scaledToFill()
                     .frame(width: 50, height: 50)
                     .clipped()
-                    .cornerRadius(50)
-                    .overlay(RoundedRectangle(cornerRadius: 44)
-                        .stroke(Color.black, lineWidth: 2))
-                    .shadow(radius: 5)
-            } placeholder: {
-                defaultProfileImage
+                    .cornerRadius(25)
+                    .overlay(Circle()
+                        .stroke(Color(.label), lineWidth: 1))
+            } else {
+                Image(systemName: "person.circle.fill")
+                    .resizable()
+                    .foregroundColor(.gray)
+                    .frame(width: 50, height: 50)
+                    .clipShape(Circle())
             }
-        } else {
-            defaultProfileImage
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text(friend.name)
+                    .font(.system(size: 16, weight: .semibold))
+                Text(friend.email)
+                    .font(.system(size: 14))
+                    .foregroundColor(Color(.lightGray))
+            }
+            Spacer()
         }
-    }
-    
-    private var defaultProfileImage: some View {
-        Image(systemName: "person.fill")
-            .resizable()
-            .frame(width: 48, height: 48)
-            .clipShape(Circle())
-    }
-}
-
-struct UserInfoView: View {
-    let name: String
-    let email: String
-    
-    var body: some View {
-        VStack(alignment: .leading) {
-            Text(name)
-                .font(.system(size: 18, weight: .semibold))
-                .foregroundColor(Color(.label))
-            Text(email)
-                .font(.system(size: 14, weight: .light))
-                .foregroundColor(Color(.label))
-        }
-    }
-}
-
-struct CreateNewMessageView: View {
-    let didSelectNewUser: (ChatUser) -> ()
-    @Environment(\.presentationMode) var presentationMode
-    @ObservedObject var vm = CreateNewMessageViewModel()
-    
-    var body: some View {
-        NavigationView {
-            ScrollView {
-                ForEach(vm.users) { friend in
-                    FriendRowView(friend: friend) { chatUser in
-                        presentationMode.wrappedValue.dismiss()
-                        didSelectNewUser(chatUser)
-                    }
-                }
-            }
-            .navigationTitle("New Message")
-            .toolbar {
-                ToolbarItemGroup(placement: .navigationBarLeading) {
-                    Button {
-                        presentationMode.wrappedValue.dismiss()
-                    } label: {
-                        Text("Cancel")
-                    }
-                }
-            }
-            .onAppear {
-                vm.fetchFriends()
-            }
-        }
+        .padding(.vertical, 4)
     }
 }
 

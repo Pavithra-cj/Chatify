@@ -14,35 +14,45 @@ struct HomeView: View {
     @State private var selectedTab = 0
     @State private var showQRCode = false
     @State private var showScanner = false
+    @State private var hideTabBar = false
     
     var body: some View {
-        TabView(selection: $selectedTab) {
-            NavigationView {
-                MainMessageView(showQRCode: $showQRCode, showScanner: $showScanner)
+        ZStack {
+            TabView(selection: $selectedTab) {
+                NavigationStack {
+                    MainMessageView(showQRCode: $showQRCode, showScanner: $showScanner, hideTabBar: $hideTabBar)
+                }
+                .tabItem {
+                    Image(systemName: "message.fill")
+                    Text("Chats")
+                }
+                .tag(0)
+                
+                NavigationStack {
+                    StatusView()
+                }
+                .tabItem {
+                    Image(systemName: "circle.dashed")
+                    Text("Status")
+                }
+                .tag(1)
+                
+                NavigationStack {
+                    SettingsView()
+                }
+                .tabItem {
+                    Image(systemName: "gear")
+                    Text("Settings")
+                }
+                .tag(2)
             }
-            .tabItem {
-                Image(systemName: "message.fill")
-                Text("Chats")
-            }
-            .tag(0)
+            .opacity(hideTabBar ? 0 : 1)
             
-            NavigationView {
-                StatusView()
+            if hideTabBar {
+                Color(.systemBackground)
+                    .ignoresSafeArea()
+                    .onTapGesture {} // Prevents taps from going through
             }
-            .tabItem {
-                Image(systemName: "circle.dashed")
-                Text("Status")
-            }
-            .tag(1)
-            
-            NavigationView {
-                SettingsView()
-            }
-            .tabItem {
-                Image(systemName: "gear")
-                Text("Settings")
-            }
-            .tag(2)
         }
     }
 }

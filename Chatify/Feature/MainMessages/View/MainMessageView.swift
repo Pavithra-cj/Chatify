@@ -12,17 +12,19 @@ import FirebaseAuth
 import FirebaseFirestore
 
 struct MainMessageView: View {
+    @StateObject var vm = MainMessagesViewModel()
     @State var shouldShowLogOutOptions = false
-    @State var shouldShowNewChatOptions = false
+    @State var shouldShowNewMessageScreen = false
+    @State var shouldShowQRCodeScanner = false
+    @State var shouldShowDisplayQRCode = false
+    @State var chatUser: ChatUser?
     @State var shouldNavigateToChatLogView = false
     
     @Binding var showQRCode: Bool
     @Binding var showScanner: Bool
+    @Binding var hideTabBar: Bool
     
-    @ObservedObject private var vm = MainMessagesViewModel()
-    @StateObject private var scannerViewModel = QRCodeScannerViewModel()
-    
-    @State var chatUser: ChatUser?
+    @ObservedObject private var scannerViewModel = QRCodeScannerViewModel()
     
     private var customNavBar: some View {
         HStack {
@@ -61,6 +63,14 @@ struct MainMessageView: View {
             Spacer()
             
             HStack(spacing: 16) {
+                NavigationLink {
+                    FriendsView()
+                } label: {
+                    Image(systemName: "person.2")
+                        .font(.system(size: 24, weight: .bold))
+                        .foregroundColor(Color(.label))
+                }
+
                 Button {
                     showQRCode.toggle()
                 } label: {
@@ -181,51 +191,79 @@ struct MainMessageView: View {
         }
     }
     
-    private var newMessageButton: some View{
+    private var newMessageButton: some View {
         Button {
-            shouldShowNewChatOptions.toggle()
+            shouldShowNewMessageScreen.toggle()
+        } label: {
+            Image(systemName: "square.and.pencil")
+                .font(.system(size: 24, weight: .bold))
+                .foregroundColor(.white)
+                .frame(width: 60, height: 60)
+                .background(
+                    Circle()
+                        .fill(Color.blue)
+                        .shadow(color: .black.opacity(0.3), radius: 8, x: 0, y: 4)
+                )
         }
-        label: {
-            HStack{
-                Spacer()
-                Text("+ New Message")
-                    .font(.system(size: 16, weight: .bold))
-                Spacer()
+        .padding([.trailing, .bottom], 20)
+    }
+    
+    private var friendRequestsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Friend Requests")
+                .font(.headline)
+                .padding(.horizontal)
+            
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    ForEach(vm.friendRequests) { request in
+                        FriendRequestCard(request: request) {
+                            vm.acceptFriendRequest(request)
+                        } onReject: {
+                            vm.rejectFriendRequest(request)
+                        }
+                    }
+                }
+                .padding(.horizontal)
             }
-            .foregroundColor(.white)
-            .padding(.vertical)
-            .background(Color.blue)
-            .cornerRadius(32)
-            .padding(.horizontal)
-            .shadow(radius: 15)
-        }
-        .fullScreenCover(isPresented: $shouldShowNewChatOptions, onDismiss: nil){
-            CreateNewMessageView(didSelectNewUser: { user in
-                print(user.email)
-                self.shouldNavigateToChatLogView.toggle()
-                self.chatUser = user
-            })
+            .frame(height: 100)
+            
+            Divider()
         }
     }
     
     var body: some View {
-        NavigationStack {
+        ZStack(alignment: .bottomTrailing) {
             VStack {
-                //Custom Navigation Bar
                 customNavBar
                 
-                //Messages View
+                if !vm.friendRequests.isEmpty {
+                    friendRequestsSection
+                }
+                
                 messagesView
             }
-            .overlay(
-                newMessageButton, alignment: .bottom
-            )
-            .navigationBarHidden(true)
-            .navigationDestination(isPresented: $shouldNavigateToChatLogView) {
-                if let chatUser = chatUser {
-                    ChatLogView(chatUser: chatUser)
-                }
-            }
+            
+            newMessageButton
+        }
+        .onChange(of: shouldNavigateToChatLogView) { oldValue, newValue in
+            hideTabBar = newValue
+        }
+        .fullScreenCover(isPresented: $shouldNavigateToChatLogView) {
+            ChatLogView(chatUser: chatUser)
+        }
+        .fullScreenCover(isPresented: $shouldShowNewMessageScreen, onDismiss: nil) {
+            CreateNewMessageView(didSelectUser: { friend in
+                print(friend.email)
+                self.shouldNavigateToChatLogView.toggle()
+                self.chatUser = ChatUser(data: [
+                    "uid": friend.userId,
+                    "email": friend.email,
+                    "username": friend.username,
+                    "profileImage": friend.profileImageUrl ?? "",
+                    "name": friend.name
+                ])
+            })
         }
     }
     
@@ -235,7 +273,7 @@ struct MainMessageView: View {
         let friendId = code.components(separatedBy: "_").first ?? ""
         
         let db = Firestore.firestore()
-        db.collection("users").document(currentUserId).updateData([
+        db.collection("user").document(currentUserId).updateData([
             "friends": FieldValue.arrayUnion([friendId])
         ])
         
@@ -243,6 +281,50 @@ struct MainMessageView: View {
     }
 }
 
+struct FriendRequestCard: View {
+    let request: FriendRequest
+    let onAccept: () -> Void
+    let onReject: () -> Void
+    @State private var senderName: String = ""
+    
+    var body: some View {
+        VStack {
+            Text(senderName)
+                .font(.subheadline)
+                .lineLimit(1)
+            
+            HStack(spacing: 8) {
+                Button(action: onAccept) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(.green)
+                }
+                
+                Button(action: onReject) {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundColor(.red)
+                }
+            }
+        }
+        .padding()
+        .background(Color(.systemBackground))
+        .cornerRadius(8)
+        .shadow(radius: 2)
+        .onAppear {
+            fetchSenderName()
+        }
+    }
+    
+    private func fetchSenderName() {
+        Firestore.firestore().collection("user")
+            .document(request.fromId)
+            .getDocument { snapshot, error in
+                if let data = snapshot?.data(), let name = data["name"] as? String {
+                    self.senderName = name
+                }
+            }
+    }
+}
+
 #Preview {
-    MainMessageView(showQRCode: .constant(false), showScanner: .constant(false))
+    MainMessageView(showQRCode: .constant(false), showScanner: .constant(false), hideTabBar: .constant(false))
 }
