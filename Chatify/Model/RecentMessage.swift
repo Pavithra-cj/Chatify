@@ -22,6 +22,10 @@ struct RecentMessage: Identifiable {
     let displayName: String
     let timestamp: Timestamp
     
+    let isEncrypted: Bool
+    let senderPublicKey: String
+    let recipientPublicKey: String
+    
     var chatPartnerId: String {
         return fromId == Auth.auth().currentUser?.uid ? toId : fromId
     }
@@ -35,10 +39,26 @@ struct RecentMessage: Identifiable {
         data: [String: Any]
     ) {
         self.documentId = documentId
-        self.message = data[FirebaseConstants.message] as? String ?? ""
+        let rawMessage = data[FirebaseConstants.message] as? String ?? ""
         self.fromId = data[FirebaseConstants.fromId] as? String ?? ""
         self.toId = data[FirebaseConstants.toId] as? String ?? ""
         self.timestamp = data[FirebaseConstants.timestamp] as? Timestamp ?? Timestamp(date: Date())
+        self.isEncrypted = data[FirebaseConstants.isEncrypted] as? Bool ?? false
+        self.senderPublicKey = data[FirebaseConstants.senderPublicKey] as? String ?? ""
+        self.recipientPublicKey = data[FirebaseConstants.recipientPublicKey] as? String ?? ""
+        if isEncrypted {
+            if let decrypted = EncryptionManager.shared.decrypt(ciphertext: rawMessage,
+                                                                from: fromId,
+                                                                to: toId,
+                                                                senderPublicKey: senderPublicKey,
+                                                                recipientPublicKey: recipientPublicKey) {
+                self.message = decrypted
+            } else {
+                self.message = "🔒 Encrypted message"
+            }
+        } else {
+            self.message = rawMessage
+        }
         
         // New schema
         let fromName = data["fromName"] as? String

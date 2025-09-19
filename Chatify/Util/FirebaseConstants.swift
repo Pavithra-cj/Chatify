@@ -14,4 +14,9 @@ struct FirebaseConstants{
     static let message = "message"
     static let timestamp = "timestamp"
     static let messageType = "messageType"
+    
+    static let isEncrypted = "isEncrypted"
+    static let senderPublicKey = "senderPublicKey"
+    static let recipientPublicKey = "recipientPublicKey"
+    static let encryptionVersion = "encryptionVersion"
 }
