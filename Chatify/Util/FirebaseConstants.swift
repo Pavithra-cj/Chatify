@@ -13,4 +13,5 @@ struct FirebaseConstants{
     static let toId = "toId"
     static let message = "message"
     static let timestamp = "timestamp"
+    static let messageType = "messageType"
 }
