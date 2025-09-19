@@ -1,3 +1,10 @@
+//
+//  AppCoordinator.swift
+//  Chatify
+//
+//  Created by Pavithra Chamod on 2025-09-15.
+//
+
 import SwiftUI
 import FirebaseAuth
 

@@ -1,3 +1,10 @@
+//
+//  BiometricAuthView.swift
+//  Chatify
+//
+//  Created by Pavithra Chamod on 2025-09-16.
+//
+
 import SwiftUI
 
 struct BiometricAuthView: View {

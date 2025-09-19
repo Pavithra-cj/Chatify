@@ -1,3 +1,10 @@
+//
+//  FriendsViewModel.swift
+//  Chatify
+//
+//  Created by Pavithra Chamod on 2025-09-18.
+//
+
 import Foundation
 import FirebaseAuth
 import FirebaseFirestore

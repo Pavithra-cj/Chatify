@@ -1,3 +1,10 @@
+//
+//  SettingsViewModel.swift
+//  Chatify
+//
+//  Created by Pavithra Chamod on 2025-09-19.
+//
+
 import Foundation
 import SwiftUI
 import FirebaseAuth

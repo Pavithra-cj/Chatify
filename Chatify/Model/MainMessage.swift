@@ -16,6 +16,7 @@ struct ChatUser: Identifiable {
     let username: String
     let name: String
     let profileImage: String?
+    let publicKey: String?
     
     init(data: [String: Any]){
         self.uid = data["uid"] as? String ?? ""
@@ -23,5 +24,6 @@ struct ChatUser: Identifiable {
         self.username = data["username"] as? String ?? ""
         self.name = data["name"] as? String ?? ""
         self.profileImage = data["profileImage"] as? String ?? ""
+        self.publicKey = data["publicKey"] as? String
     }
 }
