@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import LocalAuthentication
 
 struct BiometricAuthView: View {
     @StateObject private var biometricManager = BiometricAuthManager()
@@ -20,7 +21,7 @@ struct BiometricAuthView: View {
                 .ignoresSafeArea()
             
             VStack(spacing: 20) {
-                Image(systemName: biometricManager.biometricType == .faceID ? "faceid" : "touchid")
+                Image(systemName: iconName)
                     .font(.system(size: 56))
                     .foregroundColor(.blue)
                     .padding()
@@ -29,28 +30,20 @@ struct BiometricAuthView: View {
                     .font(.title2)
                     .bold()
                 
-                Text("Please authenticate to access Chatify")
+                Text(descriptionText)
                     .foregroundColor(.gray)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal)
                 
-                if biometricManager.biometricType == .none {
-                    Text("Biometric authentication is not available on this device")
-                        .foregroundColor(.red)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal)
-                }
-                
                 if !biometricManager.isAuthenticated && !isAuthenticating {
                     Button(action: authenticate) {
-                        Text("Authenticate with \(biometricManager.biometricType.title)")
+                        Text(buttonTitle)
                             .foregroundColor(.white)
                             .padding()
                             .frame(maxWidth: .infinity)
-                            .background(biometricManager.biometricType == .none ? Color.gray : Color.blue)
+                            .background(Color.blue)
                             .cornerRadius(10)
                     }
-                    .disabled(biometricManager.biometricType == .none)
                     .padding(.horizontal)
                 }
                 
@@ -68,15 +61,14 @@ struct BiometricAuthView: View {
             .padding(.horizontal, 20)
         }
         .onAppear {
+            biometricManager.refreshBiometricType()
             if !biometricManager.isAuthenticated {
                 authenticate()
             }
         }
         .onChange(of: biometricManager.isAuthenticated) { newValue in
             isAuthenticated = newValue
-            if newValue {
-                dismiss()
-            }
+            if newValue { dismiss() }
         }
         .alert("Authentication Failed", isPresented: $showingError) {
             Button("Try Again", action: authenticate)
@@ -86,20 +78,50 @@ struct BiometricAuthView: View {
                 dismiss()
             }
         } message: {
-            Text(biometricManager.biometricError?.localizedDescription ?? "Please try again")
+            Text(errorMessage)
         }
+    }
+    
+    private var iconName: String {
+        switch biometricManager.biometricType {
+        case .faceID: return "faceid"
+        case .touchID: return "touchid"
+        case .none: return "lock.circle"
+        }
+    }
+    
+    private var buttonTitle: String {
+        "Authenticate with \(biometricManager.biometricType.title)"
+    }
+    
+    private var descriptionText: String {
+        switch biometricManager.biometricType {
+        case .none:
+            return "Use your device passcode to unlock Chatify"
+        case .touchID, .faceID:
+            return "Please authenticate to access Chatify"
+        }
+    }
+    
+    private var errorMessage: String {
+        if let err = biometricManager.biometricError as? LAError {
+            switch err.code {
+            case .biometryLockout: return "Biometrics locked. Use passcode or wait before trying again."
+            case .biometryNotEnrolled: return "No biometrics enrolled. Enroll in Settings or use passcode."
+            case .biometryNotAvailable: return "Biometric hardware not available. Use passcode."
+            default: break
+            }
+        }
+        return biometricManager.biometricError?.localizedDescription ?? "Please try again"
     }
     
     private func authenticate() {
         guard !isAuthenticating else { return }
         isAuthenticating = true
-        
         biometricManager.authenticate { success in
             withAnimation {
                 isAuthenticating = false
-                if !success {
-                    showingError = true
-                }
+                if !success { showingError = true }
             }
         }
     }
