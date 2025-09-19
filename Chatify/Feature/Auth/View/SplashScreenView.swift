@@ -17,6 +17,8 @@ struct SplashScreenView: View {
     @State private var logoOffset: CGFloat = 0
     @State private var logoScale: CGFloat = 1.0
     @State private var textOpacity: Double = 1.0
+    @State private var logoRotation: Double = 0
+    @State private var logoOpacity: Double = 0.0
     
     @EnvironmentObject private var coordinator: AppCoordinator
     
@@ -66,7 +68,9 @@ struct SplashScreenView: View {
                                 .frame(width: 120, height: 120)
                         )
                         .scaleEffect(logoScale)
+                        .rotationEffect(.degrees(logoRotation))
                         .offset(y: logoOffset)
+                        .opacity(logoOpacity)
                     
                     Text("Chatify")
                         .font(.system(size: 32, weight: .bold))
@@ -86,14 +90,45 @@ struct SplashScreenView: View {
     }
     
     private func runSpalshAnimation(){
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-            withAnimation(.easeInOut(duration: 1.0)){
-                logoOffset = -120
-                logoScale = 0.7
-                textOpacity = 0.0
+        // Initial state setup
+        logoScale = 0.1
+        logoOpacity = 0.0
+        textOpacity = 0.0
+        logoRotation = -180
+        
+        // Phase 1: Animate logo appearance with rotation
+        withAnimation(.easeOut(duration: 0.6)) {
+            logoScale = 1.2
+            logoOpacity = 1.0
+            logoRotation = 0
+        }
+        
+        // Phase 2: Scale bounce effect
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+            withAnimation(.spring(response: 0.5, dampingFraction: 0.6)) {
+                logoScale = 1.0
             }
         }
         
+        // Phase 3: Fade in text
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+            withAnimation(.easeIn(duration: 0.4)) {
+                textOpacity = 1.0
+            }
+        }
+        
+        // Phase 4: Final exit animation
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) {
+            withAnimation(.easeInOut(duration: 0.7)) {
+                logoOffset = -120
+                logoScale = 0.7
+                logoRotation = 360
+                textOpacity = 0.0
+                logoOpacity = 0.0
+            }
+        }
+        
+        // Phase 5: Transition to main content
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
             isActive = true
         }

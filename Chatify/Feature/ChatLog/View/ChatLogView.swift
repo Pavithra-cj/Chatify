@@ -11,6 +11,55 @@ import FirebaseAuth
 import CoreLocation
 import MapKit
 
+struct AttachmentOption: Identifiable {
+    let id = UUID()
+    let icon: String
+    let text: String
+    let color: Color
+    let action: () -> Void
+}
+
+struct AttachmentOptionsView: View {
+    @Environment(\.colorScheme) var colorScheme
+    let options: [AttachmentOption]
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            ScrollView {
+                LazyVGrid(columns: [
+                    GridItem(.flexible()),
+                    GridItem(.flexible()),
+                    GridItem(.flexible())
+                ], spacing: 20) {
+                    ForEach(options) { option in
+                        Button(action: option.action) {
+                            VStack(spacing: 8) {
+                                Circle()
+                                    .fill(option.color)
+                                    .frame(width: 60, height: 60)
+                                    .overlay(
+                                        Image(systemName: option.icon)
+                                            .font(.system(size: 24))
+                                            .foregroundStyle(.white)
+                                    )
+                                Text(option.text)
+                                    .font(.system(size: 12))
+                                    .foregroundStyle(.primary)
+                            }
+                        }
+                    }
+                }
+                .padding(.horizontal)
+                .padding(.vertical, 20)
+            }
+            .frame(height: 220)
+        }
+        .background(colorScheme == .dark ? Color.black : Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 15))
+        .shadow(color: Color.black.opacity(0.1), radius: 10, y: -5)
+    }
+}
+
 struct ChatLogView: View {
     let chatUser: ChatUser?
     
@@ -23,6 +72,8 @@ struct ChatLogView: View {
     @State private var showImagePicker = false
     @State private var selectedImage: UIImage?
     @State private var showLocationPicker = false
+    @State private var showAttachmentOptions = false
+    @State private var showCamera = false
     
     init(chatUser: ChatUser?) {
         self.chatUser = chatUser
@@ -149,48 +200,95 @@ struct ChatLogView: View {
         }
     }
     
+    private var attachmentOptions: [AttachmentOption] {
+        [
+            AttachmentOption(
+                icon: "camera.fill",
+                text: "Camera",
+                color: .gray,
+                action: { showCamera = true }
+            ),
+            AttachmentOption(
+                icon: "photo.fill",
+                text: "Photos",
+                color: .blue,
+                action: { showImagePicker = true }
+            ),
+            AttachmentOption(
+                icon: "face.smiling.fill",
+                text: "Stickers",
+                color: .purple,
+                action: { }
+            ),
+            AttachmentOption(
+                icon: "waveform",
+                text: "Audio",
+                color: .orange,
+                action: { }
+            ),
+            AttachmentOption(
+                icon: "location.fill",
+                text: "Location",
+                color: .green,
+                action: { shareLocation() }
+            )
+        ]
+    }
+    
     private var inputBarView: some View {
-        HStack(spacing: 12) {
-            Button(action: { showMediaPicker.toggle() }) {
-                Image(systemName: "plus.circle.fill")
-                    .font(.system(size: 28))
-                    .foregroundStyle(.blue)
-            }
-            .actionSheet(isPresented: $showMediaPicker) {
-                ActionSheet(title: Text("Share Media"), buttons: [
-                    .default(Text("Photo Library")) { showImagePicker.toggle() },
-                    .default(Text("Share Location")) { shareLocation() },
-                    .cancel()
-                ])
-            }
-            .sheet(isPresented: $showImagePicker) {
-                ImagePicker(image: $selectedImage)
+        VStack(spacing: 0) {
+            if showAttachmentOptions {
+                AttachmentOptionsView(options: attachmentOptions)
+                    .transition(.move(edge: .bottom))
             }
             
-            CustomTextField(text: $vm.chatText, placeholder: "Message")
-            
-            if !vm.chatText.isEmpty || selectedImage != nil {
+            HStack(spacing: 12) {
                 Button(action: {
-                    if let image = selectedImage {
-                        vm.sendImage(image)
-                    } else {
-                        vm.handleSendMessage()
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                        showAttachmentOptions.toggle()
                     }
-                    selectedImage = nil
                 }) {
-                    Circle()
-                        .fill(Color.blue)
-                        .frame(width: 32, height: 32)
-                        .overlay(
-                            Image(systemName: "arrow.up")
-                                .font(.system(size: 16, weight: .bold))
-                                .foregroundStyle(.white)
-                        )
+                    Image(systemName: "plus.circle.fill")
+                        .font(.system(size: 28))
+                        .foregroundStyle(.blue)
+                        .rotationEffect(.degrees(showAttachmentOptions ? 45 : 0))
+                        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: showAttachmentOptions)
+                }
+                .sheet(isPresented: $showCamera) {
+                    ImagePicker(image: $selectedImage, sourceType: .camera)
+                }
+                .sheet(isPresented: $showImagePicker) {
+                    ImagePicker(image: $selectedImage, sourceType: .photoLibrary)
+                }
+                
+                CustomTextField(text: $vm.chatText, placeholder: "Message")
+                
+                if !vm.chatText.isEmpty || selectedImage != nil {
+                    Button(action: {
+                        if let image = selectedImage {
+                            vm.sendImage(image)
+                            selectedImage = nil
+                        } else {
+                            vm.handleSendMessage()
+                        }
+                        showAttachmentOptions = false
+                    }) {
+                        Circle()
+                            .fill(Color.blue)
+                            .frame(width: 32, height: 32)
+                            .overlay(
+                                Image(systemName: "arrow.up")
+                                    .font(.system(size: 16, weight: .bold))
+                                    .foregroundStyle(.white)
+                            )
+                    }
                 }
             }
+            .padding(.horizontal)
+            .padding(.vertical, 12)
+            .background(Color(.systemBackground))
         }
-        .padding(.horizontal)
-        .padding(.vertical, 12)
+        .background(Color(.systemBackground))
     }
 }
 
