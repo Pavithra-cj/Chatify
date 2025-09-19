@@ -90,34 +90,33 @@ struct SplashScreenView: View {
     }
     
     private func runSpalshAnimation(){
-        // Initial state setup
         logoScale = 0.1
         logoOpacity = 0.0
         textOpacity = 0.0
         logoRotation = -180
         
-        // Phase 1: Animate logo appearance with rotation
+        // Animate logo appearance with rotation
         withAnimation(.easeOut(duration: 0.6)) {
             logoScale = 1.2
             logoOpacity = 1.0
             logoRotation = 0
         }
         
-        // Phase 2: Scale bounce effect
+        // Scale bounce effect
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
             withAnimation(.spring(response: 0.5, dampingFraction: 0.6)) {
                 logoScale = 1.0
             }
         }
         
-        // Phase 3: Fade in text
+        // Fade in text
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
             withAnimation(.easeIn(duration: 0.4)) {
                 textOpacity = 1.0
             }
         }
         
-        // Phase 4: Final exit animation
+        // Final exit animation
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) {
             withAnimation(.easeInOut(duration: 0.7)) {
                 logoOffset = -120
@@ -128,7 +127,7 @@ struct SplashScreenView: View {
             }
         }
         
-        // Phase 5: Transition to main content
+        // Transition to main content
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
             isActive = true
         }

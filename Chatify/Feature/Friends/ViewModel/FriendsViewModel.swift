@@ -129,7 +129,7 @@ class FriendsViewModel: ObservableObject {
                 self?.errorMessage = error.localizedDescription
                 return
             }
-            self?.fetchFriends() // Refresh friends list
+            self?.fetchFriends()
         }
     }
     

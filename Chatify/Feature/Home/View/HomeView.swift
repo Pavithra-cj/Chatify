@@ -51,7 +51,7 @@ struct HomeView: View {
             if hideTabBar {
                 Color(.systemBackground)
                     .ignoresSafeArea()
-                    .onTapGesture {} // Prevents taps from going through
+                    .onTapGesture {}
             }
         }
     }
