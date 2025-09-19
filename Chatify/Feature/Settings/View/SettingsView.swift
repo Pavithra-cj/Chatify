@@ -11,11 +11,25 @@ import FirebaseAuth
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @AppStorage("isUserLoggedIn") var isUserLoggedIn: Bool = false
+    @AppStorage("useBiometricAuth") private var useBiometricAuth = false
+    @StateObject private var biometricManager = BiometricAuthManager()
     @State private var showingSignOutError = false
     @State private var errorMessage = ""
     
     var body: some View {
         List {
+            Section(header: Text("Security")) {
+                if biometricManager.getBiometricType() != .none {
+                    Toggle(isOn: $useBiometricAuth) {
+                        HStack {
+                            Image(systemName: biometricManager.getBiometricType() == .faceID ? "faceid" : "touchid")
+                                .foregroundColor(.blue)
+                            Text("\(biometricManager.getBiometricType().title) Authentication")
+                        }
+                    }
+                }
+            }
+            
             Section {
                 Button(action: handleSignOut) {
                     HStack {
