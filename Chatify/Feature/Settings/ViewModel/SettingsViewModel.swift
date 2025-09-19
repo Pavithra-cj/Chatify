@@ -9,6 +9,8 @@ import Foundation
 import SwiftUI
 import FirebaseAuth
 import FirebaseFirestore
+import FirebaseMessaging
+import UserNotifications
 
 class SettingsViewModel: ObservableObject {
     @Published var userName: String = ""
@@ -17,8 +19,14 @@ class SettingsViewModel: ObservableObject {
     @Published var isLoading: Bool = false
     @Published var errorMessage: String = ""
     
+    @Published var messageNotificationsEnabled: Bool = true
+    @Published var friendRequestNotificationsEnabled: Bool = true
+    @Published var notificationAuthorizationStatus: UNAuthorizationStatus = .notDetermined
+    @Published var isUpdatingNotifications: Bool = false
+    
     init() {
         fetchUserData()
+        refreshNotificationAuthorizationStatus()
     }
     
     func fetchUserData() {
@@ -38,6 +46,8 @@ class SettingsViewModel: ObservableObject {
             self.userName = data["username"] as? String ?? ""
             self.userEmail = data["email"] as? String ?? ""
             self.profileImage = data["profileImage"] as? String
+            if let msgPref = data["messageNotificationsEnabled"] as? Bool { self.messageNotificationsEnabled = msgPref }
+            if let frPref = data["friendRequestNotificationsEnabled"] as? Bool { self.friendRequestNotificationsEnabled = frPref }
         }
     }
     
@@ -116,6 +126,71 @@ class SettingsViewModel: ObservableObject {
                 }
                 
                 completion(true, "Password updated successfully")
+            }
+        }
+    }
+    
+    func refreshNotificationAuthorizationStatus() {
+        UNUserNotificationCenter.current().getNotificationSettings { settings in
+            DispatchQueue.main.async { self.notificationAuthorizationStatus = settings.authorizationStatus }
+        }
+    }
+    func notificationPreferenceChanged() {
+        saveNotificationPreferences(applyRegistrationLogic: true)
+    }
+    private func saveNotificationPreferences(applyRegistrationLogic: Bool) {
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        isUpdatingNotifications = true
+        let data: [String: Any] = [
+            "messageNotificationsEnabled": messageNotificationsEnabled,
+            "friendRequestNotificationsEnabled": friendRequestNotificationsEnabled
+        ]
+        Firestore.firestore().collection("user").document(uid).setData(data, merge: true) { [weak self] _ in
+            guard let self else { return }
+            if applyRegistrationLogic { self.applyPushRegistrationLogic() } else { self.isUpdatingNotifications = false }
+        }
+    }
+    private func applyPushRegistrationLogic() {
+        #if canImport(UIKit)
+        DispatchQueue.main.async {
+            if !self.messageNotificationsEnabled && !self.friendRequestNotificationsEnabled {
+                // Disable push
+                UIApplication.shared.unregisterForRemoteNotifications()
+                if let uid = Auth.auth().currentUser?.uid {
+                    Firestore.firestore().collection("user").document(uid).setData(["fcmToken": FieldValue.delete()], merge: true)
+                }
+                self.isUpdatingNotifications = false
+            } else {
+                // Ensure authorized & registered
+                UNUserNotificationCenter.current().getNotificationSettings { settings in
+                    if settings.authorizationStatus == .notDetermined {
+                        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { granted, _ in
+                            self.refreshNotificationAuthorizationStatus()
+                            if granted {
+                                DispatchQueue.main.async { UIApplication.shared.registerForRemoteNotifications() }
+                                self.persistCurrentFCMToken()
+                            } else {
+                                DispatchQueue.main.async { self.isUpdatingNotifications = false }
+                            }
+                        }
+                    } else if settings.authorizationStatus == .denied {
+                        DispatchQueue.main.async { self.isUpdatingNotifications = false }
+                    } else {
+                        DispatchQueue.main.async { UIApplication.shared.registerForRemoteNotifications() }
+                        self.persistCurrentFCMToken()
+                    }
+                }
+            }
+        }
+        #else
+        self.isUpdatingNotifications = false
+        #endif
+    }
+    private func persistCurrentFCMToken() {
+        Messaging.messaging().token { token, _ in
+            guard let token, let uid = Auth.auth().currentUser?.uid else { DispatchQueue.main.async { self.isUpdatingNotifications = false }; return }
+            Firestore.firestore().collection("user").document(uid).setData(["fcmToken": token], merge: true) { _ in
+                DispatchQueue.main.async { self.isUpdatingNotifications = false }
             }
         }
     }

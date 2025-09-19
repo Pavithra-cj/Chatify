@@ -7,6 +7,9 @@
 
 import SwiftUI
 import FirebaseAuth
+#if canImport(UIKit)
+import UIKit
+#endif
 
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
@@ -29,7 +32,6 @@ struct SettingsView: View {
     var body: some View {
         NavigationView {
             ZStack {
-                // Background gradient
                 LinearGradient(
                     gradient: Gradient(colors: [
                         Color(.systemBackground),
@@ -42,7 +44,6 @@ struct SettingsView: View {
                 
                 ScrollView {
                     VStack(spacing: 25) {
-                        // Header with profile card
                         profileHeaderCard
                         
                         // Settings sections
@@ -95,7 +96,7 @@ struct SettingsView: View {
             )
         }
         .overlay {
-            if viewModel.isLoading {
+            if viewModel.isLoading || viewModel.isUpdatingNotifications {
                 ZStack {
                     Color.black.opacity(0.3)
                         .ignoresSafeArea()
@@ -105,7 +106,7 @@ struct SettingsView: View {
                             .scaleEffect(1.2)
                             .progressViewStyle(CircularProgressViewStyle(tint: .blue))
                         
-                        Text("Loading...")
+                        Text(viewModel.isUpdatingNotifications ? "Updating Notifications..." : "Loading...")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                     }
@@ -124,7 +125,7 @@ struct SettingsView: View {
     private var profileHeaderCard: some View {
         NavigationLink(destination: ProfileView(viewModel: viewModel)) {
             HStack(spacing: 16) {
-                // Profile Image with gradient border
+                // Profile Image
                 ZStack {
                     Circle()
                         .fill(
@@ -338,8 +339,11 @@ struct SettingsView: View {
                 icon: "message.badge",
                 title: "Message Notifications",
                 subtitle: "Receive notifications for new messages",
-                isOn: .constant(true)
+                isOn: $viewModel.messageNotificationsEnabled
             )
+            .onChange(of: viewModel.messageNotificationsEnabled) { _, _ in
+                viewModel.notificationPreferenceChanged()
+            }
             
             Divider()
                 .padding(.leading, 50)
@@ -348,8 +352,26 @@ struct SettingsView: View {
                 icon: "person.badge.plus",
                 title: "Friend Requests",
                 subtitle: "Get notified when someone sends a friend request",
-                isOn: .constant(true)
+                isOn: $viewModel.friendRequestNotificationsEnabled
             )
+            .onChange(of: viewModel.friendRequestNotificationsEnabled) { _, _ in
+                viewModel.notificationPreferenceChanged()
+            }
+            
+            if viewModel.notificationAuthorizationStatus == .denied {
+                Divider().padding(.leading, 50)
+                settingsRow(
+                    icon: "exclamationmark.triangle",
+                    title: "Notifications Disabled",
+                    subtitle: "Enable in iOS Settings to receive alerts"
+                ) {
+                    Button("Open Settings") {
+                        #if canImport(UIKit)
+                        if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }
+                        #endif
+                    }
+                }
+            }
         }
     }
     
