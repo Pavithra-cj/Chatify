@@ -61,7 +61,6 @@ class SettingsViewModel: ObservableObject {
             return
         }
         
-        // Convert to base64 string
         let base64String = imageData.base64EncodedString()
         
         guard let uid = Auth.auth().currentUser?.uid else {
@@ -71,9 +70,8 @@ class SettingsViewModel: ObservableObject {
         
         isLoading = true
         
-        // Update Firestore with base64 string directly
         Firestore.firestore().collection("user").document(uid).updateData([
-            "profileImage": base64String  // Changed field name to match
+            "profileImage": base64String
         ]) { [weak self] error in
             guard let self = self else { return }
             self.isLoading = false
@@ -96,7 +94,6 @@ class SettingsViewModel: ObservableObject {
             return
         }
         
-        // First reauthenticate the user
         let credential = EmailAuthProvider.credential(withEmail: email, password: currentPassword)
         
         user.reauthenticate(with: credential) { [weak self] _, error in
@@ -105,7 +102,6 @@ class SettingsViewModel: ObservableObject {
                 return
             }
             
-            // Now change the password
             user.updatePassword(to: newPassword) { error in
                 if let error = error {
                     completion(false, error.localizedDescription)

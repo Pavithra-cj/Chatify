@@ -24,6 +24,7 @@ class ChatLogViewModel: ObservableObject {
     let chatUser: ChatUser?
     
     private var messagesListener: ListenerRegistration?
+    private var currentUserCache: (name: String, profileImage: String?)?
     
     init(chatUser: ChatUser?) {
         self.chatUser = chatUser
@@ -79,7 +80,6 @@ class ChatLogViewModel: ObservableObject {
                 }
             }
             
-            // Safety: sort by timestamp
             self.chatMessages.sort { $0.timestamp.dateValue() < $1.timestamp.dateValue() }
             
             DispatchQueue.main.async {
@@ -133,34 +133,64 @@ class ChatLogViewModel: ObservableObject {
         guard let chatUser = chatUser else { return }
         guard let uid = Auth.auth().currentUser?.uid else { return }
         guard let toId = self.chatUser?.uid else { return }
+        let lastMessage = self.chatText
         
-        let userRecentDoc = Firestore.firestore().collection("recent_chats").document(uid).collection("messages").document(toId)
-        let recipientRecentDoc = Firestore.firestore().collection("recent_chats").document(toId).collection("messages").document(uid)
-        
-        let data: [String: Any] = [
-            FirebaseConstants.timestamp: FieldValue.serverTimestamp(),
-            FirebaseConstants.message: self.chatText,
-            FirebaseConstants.toId: toId,
-            FirebaseConstants.fromId: uid,
-            "profileImageUrl": chatUser.profileImage ?? "",
-            "displayName": chatUser.name
-        ]
-        
-        userRecentDoc.setData(data) { error in
-            if let error = error {
-                print("Error writing recent chat for user: \(error.localizedDescription)")
-                self.errorMessage = "Error writing recent chat: \(error.localizedDescription)"
-                return
+        let finishWrite: (_ currentName: String, _ currentProfile: String?) -> Void = { currentName, currentProfile in
+            let userRecentDoc = Firestore.firestore().collection("recent_chats").document(uid).collection("messages").document(toId)
+            let recipientRecentDoc = Firestore.firestore().collection("recent_chats").document(toId).collection("messages").document(uid)
+            
+            let baseData: [String: Any] = [
+                FirebaseConstants.timestamp: FieldValue.serverTimestamp(),
+                FirebaseConstants.message: lastMessage,
+                FirebaseConstants.toId: toId,
+                FirebaseConstants.fromId: uid,
+                // New schema (both participant metadata)
+                "fromName": currentName,
+                "fromProfileImageUrl": currentProfile ?? "",
+                "toName": chatUser.name,
+                "toProfileImageUrl": chatUser.profileImage ?? "",
+                // Backward compatibility (old fields the UI might still read)
+                "profileImageUrl": chatUser.profileImage ?? "",
+                "displayName": chatUser.name
+            ]
+            
+            // Write sender side
+            userRecentDoc.setData(baseData) { error in
+                if let error = error {
+                    print("Error writing recent chat for user: \(error.localizedDescription)")
+                    self.errorMessage = "Error writing recent chat: \(error.localizedDescription)"
+                    return
+                }
+                print("Successfully updated recent chat for user (new schema)")
             }
-            print("Successfully updated recent chat for user")
+            
+            // Write recipient side (same metadata works for both perspectives)
+            recipientRecentDoc.setData(baseData) { error in
+                if let error = error {
+                    print("Error writing recent chat for recipient: \(error.localizedDescription)")
+                    return
+                }
+                print("Recipient successfully updated recent chat (new schema)")
+            }
         }
         
-        recipientRecentDoc.setData(data) { error in
+        if let cache = currentUserCache {
+            finishWrite(cache.name, cache.profileImage)
+            return
+        }
+        
+        // Fetch current user metadata once
+        Firestore.firestore().collection("user").document(uid).getDocument { snapshot, error in
             if let error = error {
-                print("Error writing recent chat for recipient: \(error.localizedDescription)")
+                print("Failed to fetch current user for recent message: \(error.localizedDescription)")
+                finishWrite("", nil)
                 return
             }
-            print("Recipient successfully updated recent chat")
+            let data = snapshot?.data() ?? [:]
+            let currentName = data["name"] as? String ?? data["username"] as? String ?? ""
+            let currentProfile = data["profileImage"] as? String
+            self.currentUserCache = (currentName, currentProfile)
+            finishWrite(currentName, currentProfile)
         }
     }
     

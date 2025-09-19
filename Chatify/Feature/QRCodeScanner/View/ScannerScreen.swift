@@ -53,7 +53,7 @@ struct ScannerScreen: View {
             }
             .alert(viewModel.alertMessage, isPresented: $viewModel.showAlert) {
                 Button("OK") {
-                    // After successful friend addition, dismiss the screen
+                    // Success
                     if viewModel.alertMessage.contains("successfully") {
                         dismiss()
                     }

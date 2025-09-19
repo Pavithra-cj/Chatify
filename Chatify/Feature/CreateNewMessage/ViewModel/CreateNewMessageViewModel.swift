@@ -55,7 +55,7 @@ class CreateNewMessageViewModel: ObservableObject {
             let db = Firestore.firestore()
             var friends: [Friend] = []
             
-            // Fetch all friend documents in parallel
+            // Fetch all friend documents
             try await withThrowingTaskGroup(of: Friend?.self) { group in
                 for friendId in friendIds {
                     group.addTask {
@@ -68,7 +68,7 @@ class CreateNewMessageViewModel: ObservableObject {
                             username: data["username"] as? String ?? "",
                             email: data["email"] as? String ?? "",
                             name: data["name"] as? String ?? "",
-                            profileImageUrl: data["profileImage"] as? String // Changed from profileImageUrl to profileImage
+                            profileImageUrl: data["profileImage"] as? String
                         )
                     }
                 }

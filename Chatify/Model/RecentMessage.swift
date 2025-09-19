@@ -8,6 +8,7 @@
 import Foundation
 import SwiftUI
 import Firebase
+import FirebaseAuth
 
 struct RecentMessage: Identifiable {
     
@@ -21,6 +22,14 @@ struct RecentMessage: Identifiable {
     let displayName: String
     let timestamp: Timestamp
     
+    var chatPartnerId: String {
+        return fromId == Auth.auth().currentUser?.uid ? toId : fromId
+    }
+    
+    var isFromCurrentUser: Bool {
+        return fromId == Auth.auth().currentUser?.uid
+    }
+    
     init(
         documentId: String,
         data: [String: Any]
@@ -30,8 +39,27 @@ struct RecentMessage: Identifiable {
         self.fromId = data[FirebaseConstants.fromId] as? String ?? ""
         self.toId = data[FirebaseConstants.toId] as? String ?? ""
         self.timestamp = data[FirebaseConstants.timestamp] as? Timestamp ?? Timestamp(date: Date())
-        self.profileImageUrl = data["profileImageUrl"] as? String ?? ""
-        self.displayName = data["displayName"] as? String ?? ""
+        
+        // New schema
+        let fromName = data["fromName"] as? String
+        let toName = data["toName"] as? String
+        let fromProfile = data["fromProfileImageUrl"] as? String
+        let toProfile = data["toProfileImageUrl"] as? String
+        
+        if fromName != nil || toName != nil || fromProfile != nil || toProfile != nil {
+            if self.fromId == Auth.auth().currentUser?.uid {
+                // Current user sent last message -> show receiver
+                self.profileImageUrl = toProfile ?? ""
+                self.displayName = toName ?? ""
+            } else {
+                // Current user received last message -> show sender
+                self.profileImageUrl = fromProfile ?? ""
+                self.displayName = fromName ?? ""
+            }
+        } else {
+            self.profileImageUrl = data["profileImageUrl"] as? String ?? ""
+            self.displayName = data["displayName"] as? String ?? ""
+        }
     }
     
     var timeAgoDisplay: String {
@@ -39,5 +67,4 @@ struct RecentMessage: Identifiable {
         formatter.unitsStyle = .abbreviated
         return formatter.localizedString(for: timestamp.dateValue(), relativeTo: Date())
     }
-    
 }
