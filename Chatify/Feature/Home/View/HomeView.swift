@@ -14,17 +14,25 @@ struct HomeView: View {
     @State private var selectedTab = 0
     @State private var showQRCode = false
     @State private var showScanner = false
-    @State private var hideTabBar = false
+    @State private var selectedChatUser: ChatUser? = nil
+    @State private var navigateToChatLog = false
     
     var body: some View {
-        ZStack {
+        NavigationStack {
             TabView(selection: $selectedTab) {
-                MainMessageView(showQRCode: $showQRCode, showScanner: $showScanner, hideTabBar: $hideTabBar)
-                    .tabItem {
-                        Image(systemName: "message.fill")
-                        Text("Chats")
+                MainMessageView(
+                    showQRCode: $showQRCode,
+                    showScanner: $showScanner,
+                    onChatSelected: { user in
+                        selectedChatUser = user
+                        navigateToChatLog = true
                     }
-                    .tag(0)
+                )
+                .tabItem {
+                    Image(systemName: "message.fill")
+                    Text("Chats")
+                }
+                .tag(0)
                 
                 StatusView()
                     .tabItem {
@@ -40,12 +48,10 @@ struct HomeView: View {
                     }
                     .tag(2)
             }
-            .opacity(hideTabBar ? 0 : 1)
-            
-            if hideTabBar {
-                Color(.systemBackground)
-                    .ignoresSafeArea()
-                    .onTapGesture {}
+            .navigationDestination(isPresented: $navigateToChatLog) {
+                if let user = selectedChatUser {
+                    ChatLogView(chatUser: user)
+                }
             }
         }
     }

@@ -118,14 +118,19 @@ struct ChatLogView: View {
             }
             messageListView
             inputBarView
+                .background(Color(.systemBackground))
         }
-        .ignoresSafeArea(.keyboard)
+        .navigationBarBackButtonHidden(true)
+        .padding(.bottom)
+        .animation(.easeOut(duration: 0.25))
+        .background(Color(.systemGroupedBackground).ignoresSafeArea())
+        .toolbar(.hidden, for: .tabBar)
     }
     
     private var chatHeader: some View {
         HStack(spacing: 16) {
             Button(action: {
-                presentationMode.wrappedValue.dismiss()
+                dismiss()
             }) {
                 Image(systemName: "chevron.left")
                     .font(.system(size: 24, weight: .semibold))
