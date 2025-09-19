@@ -10,6 +10,7 @@ import Firebase
 import FirebaseAuth
 import CoreLocation
 import MapKit
+import UIKit
 
 struct AttachmentOption: Identifiable {
     let id = UUID()
@@ -74,6 +75,7 @@ struct ChatLogView: View {
     @State private var showLocationPicker = false
     @State private var showAttachmentOptions = false
     @State private var showCamera = false
+    @State private var isRequestingLocation = false
     
     init(chatUser: ChatUser?) {
         self.chatUser = chatUser
@@ -83,15 +85,37 @@ struct ChatLogView: View {
     static let emptyScrollToString = "Empty"
     
     private func shareLocation() {
-        LocationManager.shared.requestLocation()
-        if let location = LocationManager.shared.location {
-            vm.sendLocation(location.coordinate)
+        guard !vm.isSendingLocation else { return }
+        isRequestingLocation = true
+        LocationManager.shared.requestSingleLocation { result in
+            DispatchQueue.main.async {
+                self.isRequestingLocation = false
+                switch result {
+                case .success(let loc):
+                    self.vm.sendLocation(loc.coordinate)
+                case .failure(let error):
+                    switch error {
+                    case .denied: vm.errorMessage = "Location permission denied"
+                    case .restricted: vm.errorMessage = "Location access restricted"
+                    case .timeout: vm.errorMessage = "Location request timed out"
+                    case .unavailable: vm.errorMessage = "Location unavailable"
+                    }
+                }
+            }
         }
     }
     
     var body: some View {
-        VStack {
+        VStack(spacing: 0) {
             chatHeader
+            if !vm.errorMessage.isEmpty {
+                Text(vm.errorMessage)
+                    .font(.caption)
+                    .foregroundStyle(.white)
+                    .padding(8)
+                    .frame(maxWidth: .infinity)
+                    .background(Color.red.gradient)
+            }
             messageListView
             inputBarView
         }
@@ -254,6 +278,7 @@ struct ChatLogView: View {
                         .rotationEffect(.degrees(showAttachmentOptions ? 45 : 0))
                         .animation(.spring(response: 0.3, dampingFraction: 0.8), value: showAttachmentOptions)
                 }
+                .disabled(vm.isUploadingImage || vm.isSendingLocation)
                 .sheet(isPresented: $showCamera) {
                     ImagePicker(image: $selectedImage, sourceType: .camera)
                 }
@@ -261,13 +286,69 @@ struct ChatLogView: View {
                     ImagePicker(image: $selectedImage, sourceType: .photoLibrary)
                 }
                 
+                if let image = selectedImage {
+                    ZStack(alignment: .center) {
+                        Image(uiImage: image)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 56, height: 56)
+                            .clipped()
+                            .cornerRadius(10)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .stroke(Color.blue.opacity(0.3), lineWidth: 1)
+                            )
+                        if vm.isUploadingImage, let progress = vm.imageUploadProgress {
+                            ZStack {
+                                Color.black.opacity(0.55)
+                                VStack(spacing: 4) {
+                                    ProgressView(value: progress)
+                                        .progressViewStyle(.linear)
+                                        .tint(.white)
+                                        .frame(width: 40)
+                                    Text("\(Int(progress * 100))%")
+                                        .font(.system(size: 12, weight: .semibold))
+                                        .foregroundStyle(.white)
+                                }
+                                .padding(6)
+                            }
+                            .cornerRadius(10)
+                        } else {
+                            Button(action: { if !vm.isUploadingImage { selectedImage = nil } }) {
+                                Image(systemName: "xmark.circle.fill")
+                                    .font(.system(size: 18))
+                                    .foregroundStyle(.white)
+                                    .shadow(radius: 2)
+                                    .background(Color.black.opacity(0.25).clipShape(Circle()))
+                            }
+                            .padding(4)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+                        }
+                    }
+                    .padding(.leading, 4)
+                    .animation(.easeInOut, value: vm.imageUploadProgress)
+                }
+                
                 CustomTextField(text: $vm.chatText, placeholder: "Message")
                 
-                if !vm.chatText.isEmpty || selectedImage != nil {
+                if vm.isUploadingImage || vm.isSendingLocation || isRequestingLocation {
+                    VStack(spacing: 2) {
+                        if vm.isUploadingImage, let progress = vm.imageUploadProgress {
+                            Text("\(Int(progress * 100))%")
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundStyle(.secondary)
+                        }
+                        ProgressView()
+                            .progressViewStyle(.circular)
+                            .frame(width: 32, height: 32)
+                    }
+                } else if !vm.chatText.isEmpty || selectedImage != nil {
                     Button(action: {
                         if let image = selectedImage {
-                            vm.sendImage(image)
-                            selectedImage = nil
+                            vm.sendImage(image) {
+                                // Clear preview after upload completion
+                                selectedImage = nil
+                            }
                         } else {
                             vm.handleSendMessage()
                         }
@@ -275,13 +356,15 @@ struct ChatLogView: View {
                     }) {
                         Circle()
                             .fill(Color.blue)
-                            .frame(width: 32, height: 32)
+                            .frame(width: 40, height: 40)
                             .overlay(
                                 Image(systemName: "arrow.up")
-                                    .font(.system(size: 16, weight: .bold))
+                                    .font(.system(size: 18, weight: .bold))
                                     .foregroundStyle(.white)
                             )
                     }
+                    .disabled(vm.isUploadingImage || vm.isSendingLocation)
+                    .opacity(vm.isUploadingImage || vm.isSendingLocation ? 0.5 : 1)
                 }
             }
             .padding(.horizontal)
@@ -352,7 +435,8 @@ struct MessageBubble: View {
                         image
                             .resizable()
                             .scaledToFit()
-                            .frame(maxWidth: 200)
+                            .frame(maxWidth: 220)
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
                     } placeholder: {
                         ProgressView()
                     }
@@ -362,21 +446,46 @@ struct MessageBubble: View {
                         .padding(.horizontal, 8)
                         .padding(.bottom, 4)
                 }
+                .padding(6)
                 .background(isFromCurrentUser ? Color.blue : (colorScheme == .dark ? Color(.systemGray5) : Color.white))
                 .clipShape(RoundedRectangle(cornerRadius: 20))
             }
         case .location:
-            VStack(alignment: isFromCurrentUser ? .trailing : .leading, spacing: 4) {
-                LocationPreview(coordinate: ChatMessage.extractCoordinate(from: message.message))
-                    .frame(width: 200, height: 200)
-                Text(message.timestamp.dateValue().formatted(.dateTime.hour().minute()))
-                    .font(.system(size: 11))
-                    .foregroundStyle(isFromCurrentUser ? .white.opacity(0.8) : .secondary)
-                    .padding(.horizontal, 8)
-                    .padding(.bottom, 4)
+            let coord = ChatMessage.extractCoordinate(from: message.message)
+            Button(action: { openMap(for: coord) }) {
+                VStack(alignment: isFromCurrentUser ? .trailing : .leading, spacing: 4) {
+                    ZStack(alignment: .topTrailing) {
+                        LocationPreview(coordinate: coord)
+                            .frame(width: 200, height: 180)
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                        Image(systemName: "map.fill")
+                            .font(.system(size: 14))
+                            .padding(6)
+                            .background(Color.black.opacity(0.4))
+                            .foregroundStyle(.white)
+                            .clipShape(Circle())
+                            .padding(6)
+                    }
+                    Text(message.timestamp.dateValue().formatted(.dateTime.hour().minute()))
+                        .font(.system(size: 11))
+                        .foregroundStyle(isFromCurrentUser ? .white.opacity(0.8) : .secondary)
+                        .padding(.horizontal, 8)
+                        .padding(.bottom, 4)
+                }
+                .padding(6)
+                .background(isFromCurrentUser ? Color.blue : (colorScheme == .dark ? Color(.systemGray5) : Color.white))
+                .clipShape(RoundedRectangle(cornerRadius: 20))
             }
-            .background(isFromCurrentUser ? Color.blue : (colorScheme == .dark ? Color(.systemGray5) : Color.white))
-            .clipShape(RoundedRectangle(cornerRadius: 20))
+            .buttonStyle(.plain)
+            .disabled(coord.latitude == 0 && coord.longitude == 0)
+        }
+    }
+    
+    private func openMap(for coordinate: CLLocationCoordinate2D) {
+        guard coordinate.latitude != 0 || coordinate.longitude != 0 else { return }
+        let urlString = "http://maps.apple.com/?ll=\(coordinate.latitude),\(coordinate.longitude)&q=Shared%20Location"
+        if let url = URL(string: urlString) {
+            UIApplication.shared.open(url)
         }
     }
 }
