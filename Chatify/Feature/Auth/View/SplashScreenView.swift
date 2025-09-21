@@ -13,6 +13,8 @@ struct SplashScreenView: View {
     
     @State private var isActive = false
     @State private var gotoLogin = false
+    @State private var showBiometricAuth = false
+    @State private var biometricAuthenticated = false
     
     @State private var logoOffset: CGFloat = 0
     @State private var logoScale: CGFloat = 1.0
@@ -31,10 +33,27 @@ struct SplashScreenView: View {
                         gotoLogin = false
                     })
                 } else {
-                    HomeView()
+                    if biometricAuthenticated {
+                        HomeView()
+                    } else {
+                        EmptyView()
+                    }
                 }
             } else {
                 splashContent
+            }
+        }
+        .fullScreenCover(isPresented: $showBiometricAuth) {
+            BiometricAuthView(isAuthenticated: $biometricAuthenticated)
+        }
+        .onChange(of: isActive) { oldValue, newValue in
+            if newValue && !gotoLogin {
+                showBiometricAuth = true
+            }
+        }
+        .onChange(of: biometricAuthenticated) { oldValue, newValue in
+            if newValue {
+                showBiometricAuth = false
             }
         }
         .onAppear{
