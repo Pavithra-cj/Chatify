@@ -37,9 +37,22 @@
 		8113B3B12E560C9E008231DE /* ChatifyUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ChatifyUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		812DA2BA2E7FD153003E8D24 /* Exceptions for "Chatify" folder in "Chatify" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 8113B3942E560C9C008231DE /* Chatify */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		8113B3972E560C9C008231DE /* Chatify */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				812DA2BA2E7FD153003E8D24 /* Exceptions for "Chatify" folder in "Chatify" target */,
+			);
 			path = Chatify;
 			sourceTree = "<group>";
 		};
@@ -420,6 +433,7 @@
 				DEVELOPMENT_TEAM = 2F3R3GHH7S;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Chatify/Info.plist;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Camera access is required to scan QR codes";
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "We need to use Face ID to securely authenticate you when accessing the app.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Please allow access to share your location in chats";
@@ -452,6 +466,7 @@
 				DEVELOPMENT_TEAM = 2F3R3GHH7S;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Chatify/Info.plist;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Camera access is required to scan QR codes";
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "We need to use Face ID to securely authenticate you when accessing the app.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Please allow access to share your location in chats";
